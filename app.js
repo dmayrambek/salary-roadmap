@@ -15,6 +15,8 @@ const T = {
   en: { started: "done", back: "Back", empty: "No items yet — add them via admin", finish: "FINISH" }
 };
 
+// Стартовая структура. Заливается ОДИН раз, если база пустая.
+// Дальше всё управляется через salary-admin.
 const SEED = [
   { id: "s1", parentId: null, order: 0, title_ru: "Технические доработки", title_en: "Technical improvements" },
   { id: "ss1", parentId: "s1", order: 0, title_ru: "Marketing Research", title_en: "Marketing Research" },
@@ -39,17 +41,31 @@ const SEED = [
   { id: "i7", parentId: "ss11", order: 1, title_ru: "NUR offer", title_en: "NUR offer" }
 ];
 
+const CACHE_KEY = "roadmap_nodes_v1";
+
 start();
 
+function initialPaint() {
+  // Мгновенный показ: сначала кэш браузера, иначе стартовая структура.
+  // Реальные данные подтянутся из базы в фоне и обновят экран.
+  let flat = null;
+  try { const c = localStorage.getItem(CACHE_KEY); if (c) flat = JSON.parse(c); } catch (e) {}
+  if (!flat || !flat.length) flat = SEED.map((n) => ({ ...n, done: false }));
+  tree = buildTree(flat);
+  render();
+}
+
 function start() {
+  initialPaint();
   onSnapshot(collection(db, COL), (snap) => {
     const flat = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     if (flat.length === 0) { seed(); return; }
+    try { localStorage.setItem(CACHE_KEY, JSON.stringify(flat)); } catch (e) {}
     tree = buildTree(flat);
     render();
   }, (err) => {
-    document.getElementById("stage").innerHTML =
-      '<div class="empty">Ошибка доступа к базе: ' + esc(err.message) + "</div>";
+    // Если база недоступна — оставляем то, что уже показано (кэш/структура).
+    console.error("Firestore:", err.message);
   });
 }
 
@@ -66,10 +82,11 @@ async function seed() {
       done: false
     });
   });
-  await batch.commit();
+  await batch.commit();   // onSnapshot сработает заново и отрисует
   seeding = false;
 }
 
+// ---------- модель ----------
 function buildTree(items) {
   const byId = {};
   items.forEach((i) => (byId[i.id] = { ...i, children: [] }));
@@ -113,16 +130,19 @@ function wrap2(str) {
   return [w.slice(0, best + 1).join(" "), w.slice(best + 1).join(" ")];
 }
 
+// ---------- отрисовка дороги ----------
 function home() {
   const N = tree.length;
   const cols = tree.map((_, i) => Math.round((660 * (i + 1)) / (N + 1)));
   const ny = 120, rt = 206, rb = 356, hubY = 44;
   let s = "";
 
+  // линии от Salary Roadmap к разделам
   cols.forEach((x) => {
     s += `<line x1="330" y1="${hubY + 14}" x2="${x}" y2="${ny - 28}" stroke="#E8005A" stroke-width="2" stroke-linecap="round" opacity="0.65"/>`;
   });
 
+  // дороги вниз
   cols.forEach((x) => {
     s += `<line x1="${x}" y1="${rt}" x2="${x}" y2="${rb}" stroke="#E8005A" stroke-width="36" stroke-linecap="round" opacity="0.07"/>`;
     s += `<line x1="${x}" y1="${rt}" x2="${x}" y2="${rb}" stroke="#000" stroke-width="30" stroke-linecap="round"/>`;
@@ -132,13 +152,16 @@ function home() {
     s += `<line x1="${x}" y1="${rt}" x2="${x}" y2="${rb}" stroke="#ff2e88" stroke-width="3" stroke-dasharray="16 15"/>`;
   });
 
+  // финишная линия
   const fx1 = Math.min(...cols) - 40, fx2 = Math.max(...cols) + 40;
   s += `<line x1="${fx1}" y1="364" x2="${fx2}" y2="364" stroke="#E8005A" stroke-width="5" stroke-linecap="round"/>`;
   s += `<text x="330" y="388" text-anchor="middle" font-family="Unbounded,sans-serif" font-size="13" font-weight="700" fill="#E8005A" letter-spacing="2">${T[lang].finish}</text>`;
 
+  // старт
   s += `<circle cx="330" cy="${hubY}" r="20" fill="#E8005A" opacity="0.13"/><circle cx="330" cy="${hubY}" r="9" fill="#E8005A"/>`;
   s += `<text x="330" y="22" text-anchor="middle" font-family="Unbounded,sans-serif" font-size="16" font-weight="700" fill="#E8005A">Salary Roadmap</text>`;
 
+  // разделы
   tree.forEach((sec, i) => {
     const x = cols[i], p = pct(sec), r = 29, C = 2 * Math.PI * r, dash = (p / 100) * C;
     const col = p === 100 ? "#34d399" : "#ff4d92";
@@ -161,6 +184,7 @@ function home() {
     `<div class="panel"><svg viewBox="0 0 660 404" role="img" aria-label="Salary Roadmap">${s}</svg></div>`;
 }
 
+// ---------- страница раздела/подраздела ----------
 function page(node) {
   if (!node) { view = { t: "home" }; return render(); }
   const p = pct(node);
@@ -207,6 +231,7 @@ function render() {
   else page(findNode(view.id));
 }
 
+// ---------- события ----------
 document.addEventListener("click", (e) => {
   const lb = e.target.closest(".langbtn");
   if (lb) {
@@ -225,5 +250,6 @@ document.addEventListener("change", (e) => {
   if (e.target.matches('input[type=checkbox][data-id]')) {
     const id = e.target.getAttribute("data-id");
     updateDoc(doc(db, COL, id), { done: e.target.checked });
+    // onSnapshot перерисует автоматически
   }
 });
