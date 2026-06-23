@@ -75,9 +75,14 @@ function start() {
     tree = buildTree(flat);
     render();
   }, (err) => {
-    // Если база недоступна — оставляем то, что уже показано (кэш/структура).
+    // Если база недоступна (например, истекли правила Firestore) — не зависаем
+    // на «Загрузка…», а показываем кэш/структуру либо кидаем на главную.
     console.error("Firestore:", err.message);
+    loaded = true;
+    render();
   });
+  // Страховка: если база молчит дольше 6 сек — перестаём ждать.
+  setTimeout(() => { if (!loaded) { loaded = true; render(); } }, 6000);
 }
 
 async function seed() {
