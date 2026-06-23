@@ -260,6 +260,7 @@ function page(node) {
       h += `<label class="row task${g ? " done" : ""}">` +
         `<input type="checkbox" data-id="${c.id}" ${g ? "checked" : ""}>` +
         `<span class="name">${esc(title(c))}</span>` +
+        `<span class="desc">${esc(c.description || "")}</span>` +
         prioBadge(c) +
         (g ? `<i class="ti ti-circle-check" style="color:var(--success)"></i>` : "") +
         `</label>`;
