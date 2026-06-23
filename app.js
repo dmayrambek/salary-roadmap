@@ -222,9 +222,21 @@ function home() {
         `<g stroke="#E8005A" stroke-width="1.4" opacity=".5" fill="#ff4d92">${links}</g></svg>` +
       `<div class="orb-wrap">` +
         `<div class="halo"></div>` +
-        `<svg class="pring" viewBox="0 0 262 262"><circle class="ptrack" cx="131" cy="131" r="124"/>` +
-        `<circle class="parc" cx="131" cy="131" r="124" style="stroke-dasharray:${C};stroke-dashoffset:${dashoffset}"/></svg>` +
-        `<div class="orb"><div class="orb-sweep"></div><div class="orb-edge"></div><div class="orb-spec"></div></div>` +
+        `<div class="glow"></div>` +
+        `<div class="orbit"><div class="ring"></div></div>` +
+        `<div class="orbit b"><div class="ring"></div></div>` +
+        `<svg class="globe" viewBox="0 0 120 120" role="img" aria-label="O!Bank">` +
+          `<defs><radialGradient id="core" cx="48%" cy="44%" r="74%">` +
+            `<stop offset="0%" stop-color="#ffd0e2"/><stop offset="24%" stop-color="#ff7ab0"/>` +
+            `<stop offset="58%" stop-color="#E8005A"/><stop offset="100%" stop-color="#37001a"/></radialGradient></defs>` +
+          `<circle cx="60" cy="60" r="47" fill="url(#core)"/>` +
+          `<circle cx="60" cy="60" r="47" fill="none" stroke="#ff8fbb" stroke-width="1" opacity=".85"/>` +
+          `<ellipse cx="60" cy="60" rx="47" ry="15" fill="none" stroke="#ffe1ec" stroke-width=".6" opacity=".4"/>` +
+          `<ellipse cx="60" cy="60" rx="47" ry="32" fill="none" stroke="#ffe1ec" stroke-width=".6" opacity=".3"/>` +
+          `<ellipse cx="60" cy="60" rx="47" ry="47" fill="none" stroke="#fff0f6" stroke-width=".6" opacity=".5"/>` +
+          `<ellipse cx="60" cy="60" rx="29" ry="47" fill="none" stroke="#fff0f6" stroke-width=".6" opacity=".4"/>` +
+          `<ellipse cx="60" cy="60" rx="12" ry="47" fill="none" stroke="#fff0f6" stroke-width=".6" opacity=".3"/>` +
+        `</svg>` +
         `<div class="backlight"></div><div class="orb-label">O!Bank</div>` +
       `</div>` +
       cards +
