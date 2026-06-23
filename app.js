@@ -10,13 +10,16 @@ let tree = [];
 let seeding = false;
 let loaded = false;   // true, когда данные пришли из Firestore
 let frontId = null;   // верхний раздел, стоящий «впереди» на сцене со сферой
+let cmtOpenId = null; // у какой задачи открыта панель комментариев
 const ICONS = ["ti-settings", "ti-building-bank", "ti-trending-up", "ti-box", "ti-star"];
 
 const T = {
   ru: { started: "выполнено", back: "Назад", empty: "Пунктов пока нет — добавьте через админку", finish: "ФИНИШ",
-        details: "Смотреть детальнее", sectionProgress: "общий прогресс<br>раздела" },
+        details: "Смотреть детальнее", sectionProgress: "общий прогресс<br>раздела",
+        comments: "Комментарии", commentPh: "Написать комментарий…", send: "Отправить", noComments: "Комментариев пока нет" },
   en: { started: "done", back: "Back", empty: "No items yet — add them via admin", finish: "FINISH",
-        details: "View details", sectionProgress: "section<br>progress" }
+        details: "View details", sectionProgress: "section<br>progress",
+        comments: "Comments", commentPh: "Write a comment…", send: "Send", noComments: "No comments yet" }
 };
 
 // Стартовая структура. Заливается ОДИН раз, если база пустая.
@@ -258,13 +261,15 @@ function page(node) {
   ch.forEach((c) => {
     if (isLeaf(c)) {
       const g = !!c.done;
-      h += `<label class="row task${g ? " done" : ""}">` +
+      const cn = (c.comments || []).length;
+      h += `<div class="row task${g ? " done" : ""}">` +
         `<input type="checkbox" data-id="${c.id}" ${g ? "checked" : ""}>` +
         `<span class="name">${esc(title(c))}</span>` +
         `<span class="desc">${esc(descOf(c))}</span>` +
         prioBadge(c) +
+        `<button class="cmt-btn" data-cmt="${c.id}" title="${T[lang].comments}"><i class="ti ti-message-2"></i><span>${cn}</span></button>` +
         (g ? `<i class="ti ti-circle-check" style="color:var(--success)"></i>` : "") +
-        `</label>`;
+        `</div>`;
     } else {
       const cp = pct(c);
       h += `<div class="row" data-open="${c.id}">` +
@@ -286,16 +291,68 @@ function render() {
   if (!tree.length) {
     document.getElementById("stage").innerHTML = '<div class="loading">Загрузка…</div>';
     setLeft("");
-    return;
+  } else {
+    const view = currentView();
+    if (view.t === "home") home();
+    else {
+      const node = findNode(view.id);
+      // Узел не найден — сразу показываем главную, не зависаем; появится из базы — render() откроет.
+      if (node) page(node); else home();
+    }
   }
-  const view = currentView();
-  if (view.t === "home") return home();
+  if (cmtOpenId) { ensureDrawer(); fillDrawer(); }   // живое обновление открытой панели комментариев
+}
 
-  const node = findNode(view.id);
-  // Узел не найден в текущих данных — сразу показываем главную, НЕ зависаем и НЕ ждём базу.
-  // Если узел придёт из базы позже — onSnapshot снова вызовет render() и откроет его.
-  if (!node) return home();
-  page(node);
+// ---------- комментарии (пишутся прямо в роадмэпе, без входа) ----------
+function fmtTime(ts) {
+  try {
+    return new Date(ts).toLocaleString(lang === "ru" ? "ru-RU" : "en-US",
+      { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" });
+  } catch (e) { return ""; }
+}
+function ensureDrawer() {
+  if (document.getElementById("cmtDrawer")) return;
+  const d = document.createElement("div");
+  d.id = "cmtDrawer"; d.className = "cmt-drawer";
+  d.innerHTML =
+    `<div class="cmt-head"><span class="cmt-title" id="cmtTitle"></span>` +
+    `<button class="cmt-x" id="cmtClose" aria-label="close">✕</button></div>` +
+    `<div class="cmt-list" id="cmtList"></div>` +
+    `<div class="cmt-add"><textarea id="cmtText" placeholder="${T[lang].commentPh}"></textarea>` +
+    `<button class="cmt-send" id="cmtSend">${T[lang].send}</button></div>`;
+  document.body.appendChild(d);
+  document.getElementById("cmtClose").addEventListener("click", closeComments);
+  document.getElementById("cmtSend").addEventListener("click", sendComment);
+  document.getElementById("cmtText").addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) sendComment();
+  });
+}
+function openComments(id) {
+  ensureDrawer(); cmtOpenId = id; fillDrawer();
+  document.getElementById("cmtDrawer").classList.add("open");
+}
+function closeComments() {
+  cmtOpenId = null;
+  const d = document.getElementById("cmtDrawer"); if (d) d.classList.remove("open");
+}
+function fillDrawer() {
+  const d = document.getElementById("cmtDrawer"); if (!d) return;
+  const n = findNode(cmtOpenId); if (!n) { closeComments(); return; }
+  document.getElementById("cmtTitle").textContent = title(n);
+  const arr = (n.comments || []).slice().sort((a, b) => (a.ts || 0) - (b.ts || 0));
+  document.getElementById("cmtList").innerHTML = arr.length
+    ? arr.map((c) => `<div class="cmt-item"><div class="cmt-txt">${esc(c.text)}</div><div class="cmt-ts">${fmtTime(c.ts)}</div></div>`).join("")
+    : `<div class="cmt-empty">${T[lang].noComments}</div>`;
+}
+async function sendComment() {
+  if (!cmtOpenId) return;
+  const ta = document.getElementById("cmtText"); const txt = (ta.value || "").trim();
+  if (!txt) return;
+  const n = findNode(cmtOpenId); if (!n) return;
+  const arr = [...(n.comments || []), { text: txt, ts: Date.now() }];
+  ta.value = "";
+  try { await updateDoc(doc(db, COL, cmtOpenId), { comments: arr }); }   // onSnapshot обновит панель
+  catch (e) { console.error("comment:", e.message); }
 }
 
 // ---------- события ----------
@@ -314,6 +371,10 @@ document.addEventListener("click", (e) => {
     go(cur && cur.parentId ? cur.parentId : "");
     return;
   }
+  // открыть панель комментариев задачи
+  const cm = e.target.closest("[data-cmt]");
+  if (cm) { openComments(cm.getAttribute("data-cmt")); return; }
+
   // свап раздела на передний план (карусель на главном экране)
   const sw = e.target.closest("[data-swap]");
   if (sw) { frontId = sw.getAttribute("data-swap"); render(); return; }
