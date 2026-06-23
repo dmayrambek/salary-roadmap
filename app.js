@@ -253,15 +253,9 @@ function render() {
   if (view.t === "home") return home();
 
   const node = findNode(view.id);
-  if (!node) {
-    // Узел не найден: либо база ещё грузится (ждём), либо его реально удалили (на главную).
-    if (!loaded) {
-      document.getElementById("stage").innerHTML = '<div class="loading">Загрузка…</div>';
-      setLeft("");
-      return;
-    }
-    return go("");
-  }
+  // Узел не найден в текущих данных — сразу показываем главную, НЕ зависаем и НЕ ждём базу.
+  // Если узел придёт из базы позже — onSnapshot снова вызовет render() и откроет его.
+  if (!node) return home();
   page(node);
 }
 
