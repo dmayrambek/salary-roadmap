@@ -43,6 +43,9 @@ const SEED = [
 
 const CACHE_KEY = "roadmap_nodes_v1";
 
+// приоритет задачи: highest / high / medium / low (пусто = не задан)
+const PRIO_LABEL = { highest: "Highest", high: "High", medium: "Medium", low: "Low" };
+
 // ---------- навигация через hash ----------
 // Текущая страница хранится в адресной строке (#/<id>), а не в памяти.
 // Благодаря этому: F5 не сбрасывает на главную, а кнопка/жест «назад» работают.
@@ -125,9 +128,6 @@ function doneLeaves(n) { return isLeaf(n) ? (n.done ? 1 : 0) : n.children.reduce
 function pct(n) { return Math.round((doneLeaves(n) / Math.max(totalLeaves(n), 1)) * 100); }
 function title(n) { return n["title_" + lang] || n.title_ru || ""; }
 function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;"); }
-
-// приоритет задачи: highest / high / medium / low (пусто = не задан)
-const PRIO_LABEL = { highest: "Highest", high: "High", medium: "Medium", low: "Low" };
 function prioBadge(n) {
   return PRIO_LABEL[n.priority] ? `<span class="prio prio-${n.priority}">${PRIO_LABEL[n.priority]}</span>` : "";
 }
