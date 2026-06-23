@@ -6,9 +6,9 @@ import {
 const COL = "nodes";
 
 let lang = "ru";
-let view = { t: "home" };   // {t:'home'} | {t:'node', id}
 let tree = [];
 let seeding = false;
+let loaded = false;   // true, когда данные пришли из Firestore
 
 const T = {
   ru: { started: "выполнено", back: "Назад", empty: "Пунктов пока нет — добавьте через админку", finish: "ФИНИШ" },
@@ -43,6 +43,16 @@ const SEED = [
 
 const CACHE_KEY = "roadmap_nodes_v1";
 
+// ---------- навигация через hash ----------
+// Текущая страница хранится в адресной строке (#/<id>), а не в памяти.
+// Благодаря этому: F5 не сбрасывает на главную, а кнопка/жест «назад» работают.
+function currentView() {
+  const id = decodeURIComponent(location.hash.replace(/^#\/?/, ""));
+  return id ? { t: "node", id } : { t: "home" };
+}
+function go(id) { location.hash = id ? "#/" + encodeURIComponent(id) : "#/"; }
+window.addEventListener("hashchange", render);
+
 start();
 
 function initialPaint() {
@@ -60,6 +70,7 @@ function start() {
   onSnapshot(collection(db, COL), (snap) => {
     const flat = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     if (flat.length === 0) { seed(); return; }
+    loaded = true;
     try { localStorage.setItem(CACHE_KEY, JSON.stringify(flat)); } catch (e) {}
     tree = buildTree(flat);
     render();
@@ -87,8 +98,6 @@ async function seed() {
 }
 
 // ---------- модель ----------
-// Уровни: 0 = раздел, 1 = подраздел (всегда папка, в неё заходишь),
-// 2+ = пункт (галочка). Галочка только у пунктов, у разделов/подразделов — нет.
 function buildTree(items) {
   const byId = {};
   items.forEach((i) => (byId[i.id] = { ...i, children: [] }));
@@ -98,18 +107,17 @@ function buildTree(items) {
     if (i.parentId && byId[i.parentId]) byId[i.parentId].children.push(node);
     else roots.push(node);
   });
-  const annotate = (arr, depth) => {
+  const sortRec = (arr) => {
     arr.sort((a, b) => (a.order || 0) - (b.order || 0));
-    arr.forEach((n) => { n.depth = depth; annotate(n.children, depth + 1); });
+    arr.forEach((n) => sortRec(n.children));
   };
-  annotate(roots, 0);
+  sortRec(roots);
   return roots;
 }
-function isTask(n) { return (n.depth || 0) >= 2; }          // пункт-галочка
-function isFolder(n) { return !isTask(n); }                  // раздел/подраздел
-function totalTasks(n) { return isTask(n) ? 1 : (n.children || []).reduce((a, c) => a + totalTasks(c), 0); }
-function doneTasks(n) { return isTask(n) ? (n.done ? 1 : 0) : (n.children || []).reduce((a, c) => a + doneTasks(c), 0); }
-function pct(n) { const t = totalTasks(n); return t ? Math.round((doneTasks(n) / t) * 100) : 0; }
+function isLeaf(n) { return !n.children || n.children.length === 0; }
+function totalLeaves(n) { return isLeaf(n) ? 1 : n.children.reduce((a, c) => a + totalLeaves(c), 0); }
+function doneLeaves(n) { return isLeaf(n) ? (n.done ? 1 : 0) : n.children.reduce((a, c) => a + doneLeaves(c), 0); }
+function pct(n) { return Math.round((doneLeaves(n) / Math.max(totalLeaves(n), 1)) * 100); }
 function title(n) { return n["title_" + lang] || n.title_ru || ""; }
 function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;"); }
 
@@ -195,7 +203,6 @@ function home() {
 
 // ---------- страница раздела/подраздела ----------
 function page(node) {
-  if (!node) { view = { t: "home" }; return render(); }
   const p = pct(node);
   let h = `<div class="page-head"><span class="page-title">${esc(title(node))}</span>` +
     `<span class="bar" style="max-width:160px"><span style="width:${p}%"></span></span>` +
@@ -206,7 +213,7 @@ function page(node) {
     h += `<div class="empty">${T[lang].empty}</div>`;
   }
   ch.forEach((c) => {
-    if (isTask(c)) {
+    if (isLeaf(c)) {
       const g = !!c.done;
       h += `<label class="row task${g ? " done" : ""}">` +
         `<input type="checkbox" data-id="${c.id}" ${g ? "checked" : ""}>` +
@@ -237,8 +244,20 @@ function render() {
     setLeft("");
     return;
   }
-  if (view.t === "home") home();
-  else page(findNode(view.id));
+  const view = currentView();
+  if (view.t === "home") return home();
+
+  const node = findNode(view.id);
+  if (!node) {
+    // Узел не найден: либо база ещё грузится (ждём), либо его реально удалили (на главную).
+    if (!loaded) {
+      document.getElementById("stage").innerHTML = '<div class="loading">Загрузка…</div>';
+      setLeft("");
+      return;
+    }
+    return go("");
+  }
+  page(node);
 }
 
 // ---------- события ----------
@@ -253,13 +272,12 @@ document.addEventListener("click", (e) => {
   }
   // «Назад» — на уровень выше (в родителя), а не сразу на главную
   if (e.target.closest("[data-back]")) {
-    const cur = findNode(view.id);
-    view = cur && cur.parentId ? { t: "node", id: cur.parentId } : { t: "home" };
-    render();
+    const cur = findNode(currentView().id);
+    go(cur && cur.parentId ? cur.parentId : "");
     return;
   }
   const op = e.target.closest("[data-open]");
-  if (op) { view = { t: "node", id: op.getAttribute("data-open") }; render(); }
+  if (op) { go(op.getAttribute("data-open")); }
 });
 
 document.addEventListener("change", (e) => {
