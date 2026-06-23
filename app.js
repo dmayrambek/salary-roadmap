@@ -16,10 +16,10 @@ const ICONS = ["ti-settings", "ti-building-bank", "ti-trending-up", "ti-box", "t
 const T = {
   ru: { started: "выполнено", back: "Назад", empty: "Пунктов пока нет — добавьте через админку", finish: "ФИНИШ",
         details: "Смотреть детальнее", sectionProgress: "общий прогресс<br>раздела",
-        comments: "Комментарии", commentPh: "Написать комментарий…", send: "Отправить", noComments: "Комментариев пока нет" },
+        comments: "Комментарии", commentPh: "Написать комментарий…", send: "Отправить", noComments: "Комментариев пока нет", delComment: "Удалить комментарий?" },
   en: { started: "done", back: "Back", empty: "No items yet — add them via admin", finish: "FINISH",
         details: "View details", sectionProgress: "section<br>progress",
-        comments: "Comments", commentPh: "Write a comment…", send: "Send", noComments: "No comments yet" }
+        comments: "Comments", commentPh: "Write a comment…", send: "Send", noComments: "No comments yet", delComment: "Delete comment?" }
 };
 
 // Стартовая структура. Заливается ОДИН раз, если база пустая.
@@ -341,7 +341,7 @@ function fillDrawer() {
   document.getElementById("cmtTitle").textContent = title(n);
   const arr = (n.comments || []).slice().sort((a, b) => (a.ts || 0) - (b.ts || 0));
   document.getElementById("cmtList").innerHTML = arr.length
-    ? arr.map((c) => `<div class="cmt-item"><div class="cmt-txt">${esc(c.text)}</div><div class="cmt-ts">${fmtTime(c.ts)}</div></div>`).join("")
+    ? arr.map((c) => `<div class="cmt-item"><button class="cmt-del" data-del-cmt="${c.ts}" aria-label="delete">✕</button><div class="cmt-txt">${esc(c.text)}</div><div class="cmt-ts">${fmtTime(c.ts)}</div></div>`).join("")
     : `<div class="cmt-empty">${T[lang].noComments}</div>`;
 }
 async function sendComment() {
@@ -353,6 +353,14 @@ async function sendComment() {
   ta.value = "";
   try { await updateDoc(doc(db, COL, cmtOpenId), { comments: arr }); }   // onSnapshot обновит панель
   catch (e) { console.error("comment:", e.message); }
+}
+async function deleteComment(ts) {
+  if (!cmtOpenId) return;
+  if (!confirm(T[lang].delComment)) return;
+  const n = findNode(cmtOpenId); if (!n) return;
+  const arr = (n.comments || []).filter((c) => String(c.ts) !== String(ts));
+  try { await updateDoc(doc(db, COL, cmtOpenId), { comments: arr }); }
+  catch (e) { console.error("comment del:", e.message); }
 }
 
 // ---------- события ----------
@@ -371,6 +379,10 @@ document.addEventListener("click", (e) => {
     go(cur && cur.parentId ? cur.parentId : "");
     return;
   }
+  // удалить комментарий
+  const dc = e.target.closest("[data-del-cmt]");
+  if (dc) { deleteComment(dc.getAttribute("data-del-cmt")); return; }
+
   // открыть панель комментариев задачи
   const cm = e.target.closest("[data-cmt]");
   if (cm) { openComments(cm.getAttribute("data-cmt")); return; }
