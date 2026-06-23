@@ -131,6 +131,7 @@ function totalLeaves(n) { return isLeaf(n) ? 1 : n.children.reduce((a, c) => a +
 function doneLeaves(n) { return isLeaf(n) ? (n.done ? 1 : 0) : n.children.reduce((a, c) => a + doneLeaves(c), 0); }
 function pct(n) { return Math.round((doneLeaves(n) / Math.max(totalLeaves(n), 1)) * 100); }
 function title(n) { return n["title_" + lang] || n.title_ru || ""; }
+function descOf(n) { return n["description_" + lang] || n.description_ru || n.description || ""; }
 function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;"); }
 function prioBadge(n) {
   return PRIO_LABEL[n.priority] ? `<span class="prio prio-${n.priority}">${PRIO_LABEL[n.priority]}</span>` : "";
@@ -260,7 +261,7 @@ function page(node) {
       h += `<label class="row task${g ? " done" : ""}">` +
         `<input type="checkbox" data-id="${c.id}" ${g ? "checked" : ""}>` +
         `<span class="name">${esc(title(c))}</span>` +
-        `<span class="desc">${esc(c.description || "")}</span>` +
+        `<span class="desc">${esc(descOf(c))}</span>` +
         prioBadge(c) +
         (g ? `<i class="ti ti-circle-check" style="color:var(--success)"></i>` : "") +
         `</label>`;
