@@ -170,7 +170,9 @@ svg [data-open]:hover .node-bg { fill: rgba(232,0,90,0.14); }
 .cmt-x { width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; font-size: 15px; }
 .cmt-x:hover { color: var(--text); border-color: var(--pink); }
 .cmt-list { flex: 1; overflow: auto; padding: 14px 18px; display: flex; flex-direction: column; gap: 10px; }
-.cmt-item { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; background: rgba(255,255,255,0.02); }
+.cmt-item { position: relative; border: 1px solid var(--border); border-radius: 10px; padding: 10px 30px 10px 12px; background: rgba(255,255,255,0.02); }
+.cmt-del { position: absolute; top: 7px; right: 7px; width: 22px; height: 22px; border-radius: 6px; border: none; background: transparent; color: var(--muted); cursor: pointer; font-size: 13px; line-height: 1; }
+.cmt-del:hover { color: var(--danger, #ff5470); background: rgba(255,84,112,0.12); }
 .cmt-txt { font-size: 14px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
 .cmt-ts { margin-top: 6px; font-size: 11px; color: var(--muted); }
 .cmt-empty { color: var(--muted); font-size: 13px; text-align: center; padding: 24px 0; }
