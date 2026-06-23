@@ -9,10 +9,14 @@ let lang = "ru";
 let tree = [];
 let seeding = false;
 let loaded = false;   // true, когда данные пришли из Firestore
+let frontId = null;   // верхний раздел, стоящий «впереди» на сцене со сферой
+const ICONS = ["ti-settings", "ti-building-bank", "ti-trending-up", "ti-box", "ti-star"];
 
 const T = {
-  ru: { started: "выполнено", back: "Назад", empty: "Пунктов пока нет — добавьте через админку", finish: "ФИНИШ" },
-  en: { started: "done", back: "Back", empty: "No items yet — add them via admin", finish: "FINISH" }
+  ru: { started: "выполнено", back: "Назад", empty: "Пунктов пока нет — добавьте через админку", finish: "ФИНИШ",
+        details: "Смотреть детальнее", sectionProgress: "общий прогресс<br>раздела" },
+  en: { started: "done", back: "Back", empty: "No items yet — add them via admin", finish: "FINISH",
+        details: "View details", sectionProgress: "section<br>progress" }
 };
 
 // Стартовая структура. Заливается ОДИН раз, если база пустая.
@@ -152,58 +156,79 @@ function wrap2(str) {
   return [w.slice(0, best + 1).join(" "), w.slice(best + 1).join(" ")];
 }
 
-// ---------- отрисовка дороги ----------
+// ---------- главный экран: сфера + разделы вокруг ----------
 function home() {
-  const N = tree.length;
-  const cols = tree.map((_, i) => Math.round((660 * (i + 1)) / (N + 1)));
-  const ny = 120, rt = 206, rb = 356, hubY = 44;
-  let s = "";
+  const roots = tree;
+  if (!roots.length) {
+    document.getElementById("stage").innerHTML = `<div class="empty">${T[lang].empty}</div>`;
+    setLeft("");
+    return;
+  }
+  if (!frontId || !roots.some((r) => r.id === frontId)) frontId = roots[0].id;
 
-  // линии от Salary Project Roadmap к разделам
-  cols.forEach((x) => {
-    s += `<line x1="330" y1="${hubY + 14}" x2="${x}" y2="${ny - 28}" stroke="#E8005A" stroke-width="2" stroke-linecap="round" opacity="0.65"/>`;
-  });
+  const SLOTS = {
+    front: { x: 490, y: 430, w: 420, top: true },
+    left:  { x: 200, y: 235, w: 210 },
+    right: { x: 780, y: 235, w: 210 }
+  };
+  const others = roots.filter((r) => r.id !== frontId);
+  const slotOf = { [frontId]: "front" };
+  if (others[0]) slotOf[others[0].id] = "left";
+  if (others[1]) slotOf[others[1].id] = "right";
 
-  // дороги вниз
-  cols.forEach((x) => {
-    s += `<line x1="${x}" y1="${rt}" x2="${x}" y2="${rb}" stroke="#E8005A" stroke-width="36" stroke-linecap="round" opacity="0.07"/>`;
-    s += `<line x1="${x}" y1="${rt}" x2="${x}" y2="${rb}" stroke="#000" stroke-width="30" stroke-linecap="round"/>`;
-    s += `<line x1="${x}" y1="${rt}" x2="${x}" y2="${rb}" stroke="#303138" stroke-width="26" stroke-linecap="round"/>`;
-    s += `<line x1="${x - 12.5}" y1="${rt}" x2="${x - 12.5}" y2="${rb}" stroke="#5a5b63" stroke-width="1.5"/>`;
-    s += `<line x1="${x + 12.5}" y1="${rt}" x2="${x + 12.5}" y2="${rb}" stroke="#5a5b63" stroke-width="1.5"/>`;
-    s += `<line x1="${x}" y1="${rt}" x2="${x}" y2="${rb}" stroke="#ff2e88" stroke-width="3" stroke-dasharray="16 15"/>`;
-  });
+  const iconOf = {};
+  roots.forEach((r, i) => (iconOf[r.id] = ICONS[i % ICONS.length]));
 
-  // финишная линия
-  const fx1 = Math.min(...cols) - 40, fx2 = Math.max(...cols) + 40;
-  s += `<line x1="${fx1}" y1="364" x2="${fx2}" y2="364" stroke="#E8005A" stroke-width="5" stroke-linecap="round"/>`;
-  s += `<text x="330" y="388" text-anchor="middle" font-family="Unbounded,sans-serif" font-size="13" font-weight="700" fill="#E8005A" letter-spacing="2">${T[lang].finish}</text>`;
+  const ov = pct({ children: roots });
+  const C = 2 * Math.PI * 124;
+  const dashoffset = C * (1 - ov / 100);
 
-  // старт
-  s += `<circle cx="330" cy="${hubY}" r="20" fill="#E8005A" opacity="0.13"/><circle cx="330" cy="${hubY}" r="9" fill="#E8005A"/>`;
-  s += `<text x="330" y="22" text-anchor="middle" font-family="Unbounded,sans-serif" font-size="16" font-weight="700" fill="#E8005A">Salary  Project Roadmap</text>`;
+  const cards = roots.map((sec) => {
+    const slot = slotOf[sec.id], pos = SLOTS[slot], p = pct(sec), ic = iconOf[sec.id];
+    const tf = pos.top ? "translate(-50%,0)" : "translate(-50%,-50%)";
+    const style = `left:${pos.x}px;top:${pos.y}px;width:${pos.w}px;transform:${tf}`;
+    if (slot === "front") {
+      const subs = (sec.children || []).map((c) => {
+        const cp = pct(c), col = cp >= 100 ? "var(--success)" : (cp > 0 ? "var(--pink)" : "rgba(255,255,255,.25)");
+        return `<div class="subrow" data-open="${c.id}">` +
+          `<span class="dot" style="background:${col}"></span>` +
+          `<span class="t">${esc(title(c))}</span>` +
+          `<span class="b"><span style="width:${cp}%;background:${cp >= 100 ? "var(--success)" : "var(--pink)"}"></span></span>` +
+          `<span class="p">${cp}%</span></div>`;
+      }).join("");
+      return `<div class="card front" style="${style}">` +
+        `<div class="card-head"><i class="ic ti ${ic}"></i>` +
+        `<button class="detail-btn" data-open="${sec.id}">${T[lang].details} <i class="ti ti-arrow-right"></i></button></div>` +
+        `<div class="nm">${esc(title(sec))}</div>` +
+        `<div class="ovbox"><div class="big">${p}%</div><div class="lab">${T[lang].sectionProgress}</div></div>` +
+        (subs || `<div class="empty">${T[lang].empty}</div>`) +
+        `</div>`;
+    }
+    return `<div class="card back" data-swap="${sec.id}" style="${style}">` +
+      `<i class="ic ti ${ic}"></i><div class="nm">${esc(title(sec))}</div>` +
+      `<div class="ring2"><div class="bar"><span style="width:${p}%"></span></div><div class="pc">${p}%</div></div></div>`;
+  }).join("");
 
-  // разделы
-  tree.forEach((sec, i) => {
-    const x = cols[i], p = pct(sec), r = 29, C = 2 * Math.PI * r, dash = (p / 100) * C;
-    const col = p === 100 ? "#34d399" : "#ff4d92";
-    s += `<g data-open="${sec.id}">`;
-    s += `<circle cx="${x}" cy="${ny}" r="42" fill="transparent"/>`;
-    s += `<circle class="node-bg" cx="${x}" cy="${ny}" r="34" fill="${p === 100 ? "rgba(52,211,153,0.10)" : "rgba(232,0,90,0.08)"}"/>`;
-    s += `<circle cx="${x}" cy="${ny}" r="${r}" fill="#141414" stroke="#2e2e2e" stroke-width="6"/>`;
-    s += `<circle cx="${x}" cy="${ny}" r="${r}" fill="none" stroke="${col}" stroke-width="6" stroke-linecap="round" stroke-dasharray="${dash} ${C}" transform="rotate(-90 ${x} ${ny})"/>`;
-    s += `<text x="${x}" y="${ny + 6}" text-anchor="middle" font-size="15" font-weight="500" fill="#fff">${p}%</text>`;
-    const ln = wrap2(title(sec));
-    const yb = ln.length === 1 ? ny + 58 : ny + 52;
-    ln.forEach((line, k) => {
-      s += `<text x="${x}" y="${yb + k * 16}" text-anchor="middle" font-family="Unbounded,sans-serif" font-size="12.5" font-weight="500" fill="#f2f2f2">${esc(line)}</text>`;
-    });
-    s += `</g>`;
-  });
+  const links =
+    `<line x1="490" y1="235" x2="200" y2="235"/><circle cx="345" cy="235" r="2.5"/>` +
+    `<line x1="490" y1="235" x2="780" y2="235"/><circle cx="635" cy="235" r="2.5"/>` +
+    `<line x1="490" y1="235" x2="490" y2="430"/><circle cx="490" cy="332" r="2.5"/>`;
 
-  setLeft(`<span class="overall">${pct({ children: tree })}% ${T[lang].started}</span>`);
+  setLeft(`<span class="overall">${ov}% ${T[lang].started}</span>`);
   document.getElementById("stage").innerHTML =
-    `<div class="panel"><svg viewBox="0 0 660 404" role="img" aria-label="Salary Project Roadmap">${s}</svg></div>`;
+    `<div class="sphere-stage">` +
+      `<div class="stage-title">Salary Project Roadmap</div>` +
+      `<svg class="links" viewBox="0 0 980 800" preserveAspectRatio="none">` +
+        `<g stroke="#E8005A" stroke-width="1.4" opacity=".5" fill="#ff4d92">${links}</g></svg>` +
+      `<div class="orb-wrap">` +
+        `<div class="halo"></div>` +
+        `<svg class="pring" viewBox="0 0 262 262"><circle class="ptrack" cx="131" cy="131" r="124"/>` +
+        `<circle class="parc" cx="131" cy="131" r="124" style="stroke-dasharray:${C};stroke-dashoffset:${dashoffset}"/></svg>` +
+        `<div class="orb"><div class="orb-sweep"></div><div class="orb-edge"></div><div class="orb-spec"></div></div>` +
+        `<div class="backlight"></div><div class="orb-label">O!Bank</div>` +
+      `</div>` +
+      cards +
+    `</div>`;
 }
 
 // ---------- страница раздела/подраздела ----------
@@ -275,6 +300,10 @@ document.addEventListener("click", (e) => {
     go(cur && cur.parentId ? cur.parentId : "");
     return;
   }
+  // свап раздела на передний план (карусель на главном экране)
+  const sw = e.target.closest("[data-swap]");
+  if (sw) { frontId = sw.getAttribute("data-swap"); render(); return; }
+
   const op = e.target.closest("[data-open]");
   if (op) { go(op.getAttribute("data-open")); }
 });
