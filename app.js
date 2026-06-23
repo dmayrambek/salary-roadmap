@@ -159,7 +159,7 @@ function home() {
   const ny = 120, rt = 206, rb = 356, hubY = 44;
   let s = "";
 
-  // линии от Salary Roadmap к разделам
+  // линии от Salary Project Roadmap к разделам
   cols.forEach((x) => {
     s += `<line x1="330" y1="${hubY + 14}" x2="${x}" y2="${ny - 28}" stroke="#E8005A" stroke-width="2" stroke-linecap="round" opacity="0.65"/>`;
   });
@@ -181,7 +181,7 @@ function home() {
 
   // старт
   s += `<circle cx="330" cy="${hubY}" r="20" fill="#E8005A" opacity="0.13"/><circle cx="330" cy="${hubY}" r="9" fill="#E8005A"/>`;
-  s += `<text x="330" y="22" text-anchor="middle" font-family="Unbounded,sans-serif" font-size="16" font-weight="700" fill="#E8005A">Salary Roadmap</text>`;
+  s += `<text x="330" y="22" text-anchor="middle" font-family="Unbounded,sans-serif" font-size="16" font-weight="700" fill="#E8005A">Salary  Project Roadmap</text>`;
 
   // разделы
   tree.forEach((sec, i) => {
@@ -203,7 +203,7 @@ function home() {
 
   setLeft(`<span class="overall">${pct({ children: tree })}% ${T[lang].started}</span>`);
   document.getElementById("stage").innerHTML =
-    `<div class="panel"><svg viewBox="0 0 660 404" role="img" aria-label="Salary Roadmap">${s}</svg></div>`;
+    `<div class="panel"><svg viewBox="0 0 660 404" role="img" aria-label="Salary Project Roadmap">${s}</svg></div>`;
 }
 
 // ---------- страница раздела/подраздела ----------
