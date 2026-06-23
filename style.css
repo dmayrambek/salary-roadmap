@@ -140,3 +140,10 @@ body {
 
 svg [data-open] { cursor: pointer; }
 svg [data-open]:hover .node-bg { fill: rgba(232,0,90,0.14); }
+
+/* --- бейдж приоритета задачи --- */
+.prio { font-size: 11px; font-weight: 500; padding: 2px 9px; border-radius: 999px; border: 1px solid transparent; white-space: nowrap; }
+.prio-highest { color: #ff5470; background: rgba(255,84,112,0.12); border-color: rgba(255,84,112,0.4); }
+.prio-high    { color: #ff9f43; background: rgba(255,159,67,0.12); border-color: rgba(255,159,67,0.4); }
+.prio-medium  { color: #54a0ff; background: rgba(84,160,255,0.12); border-color: rgba(84,160,255,0.4); }
+.prio-low     { color: #8a8a92; background: rgba(138,138,146,0.12); border-color: rgba(138,138,146,0.35); }
