@@ -87,6 +87,8 @@ async function seed() {
 }
 
 // ---------- модель ----------
+// Уровни: 0 = раздел, 1 = подраздел (всегда папка, в неё заходишь),
+// 2+ = пункт (галочка). Галочка только у пунктов, у разделов/подразделов — нет.
 function buildTree(items) {
   const byId = {};
   items.forEach((i) => (byId[i.id] = { ...i, children: [] }));
@@ -96,19 +98,26 @@ function buildTree(items) {
     if (i.parentId && byId[i.parentId]) byId[i.parentId].children.push(node);
     else roots.push(node);
   });
-  const sortRec = (arr) => {
+  const annotate = (arr, depth) => {
     arr.sort((a, b) => (a.order || 0) - (b.order || 0));
-    arr.forEach((n) => sortRec(n.children));
+    arr.forEach((n) => { n.depth = depth; annotate(n.children, depth + 1); });
   };
-  sortRec(roots);
+  annotate(roots, 0);
   return roots;
 }
-function isLeaf(n) { return !n.children || n.children.length === 0; }
-function totalLeaves(n) { return isLeaf(n) ? 1 : n.children.reduce((a, c) => a + totalLeaves(c), 0); }
-function doneLeaves(n) { return isLeaf(n) ? (n.done ? 1 : 0) : n.children.reduce((a, c) => a + doneLeaves(c), 0); }
-function pct(n) { return Math.round((doneLeaves(n) / Math.max(totalLeaves(n), 1)) * 100); }
+function isTask(n) { return (n.depth || 0) >= 2; }          // пункт-галочка
+function isFolder(n) { return !isTask(n); }                  // раздел/подраздел
+function totalTasks(n) { return isTask(n) ? 1 : (n.children || []).reduce((a, c) => a + totalTasks(c), 0); }
+function doneTasks(n) { return isTask(n) ? (n.done ? 1 : 0) : (n.children || []).reduce((a, c) => a + doneTasks(c), 0); }
+function pct(n) { const t = totalTasks(n); return t ? Math.round((doneTasks(n) / t) * 100) : 0; }
 function title(n) { return n["title_" + lang] || n.title_ru || ""; }
 function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;"); }
+
+// приоритет задачи: highest / high / medium / low (пусто = не задан)
+const PRIO_LABEL = { highest: "Highest", high: "High", medium: "Medium", low: "Low" };
+function prioBadge(n) {
+  return PRIO_LABEL[n.priority] ? `<span class="prio prio-${n.priority}">${PRIO_LABEL[n.priority]}</span>` : "";
+}
 
 function findNode(id, nodes = tree) {
   for (const n of nodes) {
@@ -197,11 +206,12 @@ function page(node) {
     h += `<div class="empty">${T[lang].empty}</div>`;
   }
   ch.forEach((c) => {
-    if (isLeaf(c)) {
+    if (isTask(c)) {
       const g = !!c.done;
       h += `<label class="row task${g ? " done" : ""}">` +
         `<input type="checkbox" data-id="${c.id}" ${g ? "checked" : ""}>` +
         `<span class="name">${esc(title(c))}</span>` +
+        prioBadge(c) +
         (g ? `<i class="ti ti-circle-check" style="color:var(--success)"></i>` : "") +
         `</label>`;
     } else {
@@ -241,7 +251,13 @@ document.addEventListener("click", (e) => {
     render();
     return;
   }
-  if (e.target.closest("[data-back]")) { view = { t: "home" }; render(); return; }
+  // «Назад» — на уровень выше (в родителя), а не сразу на главную
+  if (e.target.closest("[data-back]")) {
+    const cur = findNode(view.id);
+    view = cur && cur.parentId ? { t: "node", id: cur.parentId } : { t: "home" };
+    render();
+    return;
+  }
   const op = e.target.closest("[data-open]");
   if (op) { view = { t: "node", id: op.getAttribute("data-open") }; render(); }
 });
