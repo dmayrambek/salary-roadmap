@@ -139,6 +139,12 @@ function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;");
 function prioBadge(n) {
   return PRIO_LABEL[n.priority] ? `<span class="prio prio-${n.priority}">${PRIO_LABEL[n.priority]}</span>` : "";
 }
+function attachChips(n) {
+  let s = "";
+  if (n.link_url) s += `<a class="chip" href="${encodeURI(n.link_url)}" target="_blank" rel="noopener"><i class="ti ti-link"></i>${esc(n.link_title || n.link_url)}</a>`;
+  if (n.file_url) s += `<a class="chip" href="${encodeURI(n.file_url)}" target="_blank" rel="noopener"><i class="ti ti-download"></i>${esc(n.file_title || "Файл")}</a>`;
+  return s ? `<div class="attach-row">${s}</div>` : "";
+}
 
 function findNode(id, nodes = tree) {
   for (const n of nodes) {
@@ -251,7 +257,7 @@ function page(node) {
       h += `<div class="row task${g ? " done" : ""}">` +
         `<input type="checkbox" data-id="${c.id}" ${g ? "checked" : ""}>` +
         `<span class="name">${esc(title(c))}</span>` +
-        `<span class="desc">${esc(descOf(c))}</span>` +
+        `<div class="desc"><span class="desc-txt">${esc(descOf(c))}</span>${attachChips(c)}</div>` +
         prioBadge(c) +
         `<button class="cmt-btn" data-cmt="${c.id}" title="${T[lang].comments}"><i class="ti ti-message-2"></i><span>${cn}</span></button>` +
         (g ? `<i class="ti ti-circle-check" style="color:var(--success)"></i>` : "") +
