@@ -152,7 +152,12 @@ svg [data-open]:hover .node-bg { fill: rgba(232,0,90,0.14); }
 .row.task { align-items: flex-start; }
 .row.task input[type=checkbox] { margin-top: 1px; }
 .row.task .name { flex: 0 0 300px; font-weight: 500; }
-.row.task .desc { flex: 1; min-width: 0; color: var(--muted); font-size: 13px; line-height: 1.5; white-space: normal; }
+.row.task .desc { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 7px; }
+.row.task .desc-txt { color: var(--muted); font-size: 13px; line-height: 1.5; white-space: normal; }
+.attach-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid rgba(232,0,90,0.4); background: rgba(232,0,90,0.10); color: var(--pink-light); border-radius: 8px; padding: 4px 10px; font-size: 12px; text-decoration: none; }
+.chip:hover { background: var(--pink); color: #fff; border-color: var(--pink); }
+.chip i { font-size: 14px; }
 .row.task .prio { align-self: flex-start; margin-top: 1px; }
 
 /* 4-й блок: кнопка комментариев */
