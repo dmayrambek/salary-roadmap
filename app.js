@@ -142,7 +142,7 @@ function prioBadge(n) {
 function attachChips(n) {
   let s = "";
   if (n.link_url) s += `<a class="chip" href="${encodeURI(n.link_url)}" target="_blank" rel="noopener"><i class="ti ti-link"></i>${esc(n.link_title || n.link_url)}</a>`;
-  if (n.file_url) s += `<a class="chip" href="${encodeURI(n.file_url)}" target="_blank" rel="noopener"><i class="ti ti-download"></i>${esc(n.file_title || "Файл")}</a>`;
+  if (n.file_url) s += `<a class="chip" href="${encodeURI(n.file_url)}" target="_blank" rel="noopener"><i class="ti ti-eye"></i>${esc(n.file_title || "Просмотр")}</a>`;
   return s ? `<div class="attach-row">${s}</div>` : "";
 }
 
@@ -256,8 +256,8 @@ function page(node) {
       const cn = (c.comments || []).length;
       h += `<div class="row task${g ? " done" : ""}">` +
         `<input type="checkbox" data-id="${c.id}" ${g ? "checked" : ""}>` +
-        `<span class="name">${esc(title(c))}</span>` +
-        `<div class="desc"><span class="desc-txt">${esc(descOf(c))}</span>${attachChips(c)}</div>` +
+        `<div class="taskmain"><span class="name">${esc(title(c))}</span>${attachChips(c)}</div>` +
+        `<span class="desc">${esc(descOf(c))}</span>` +
         prioBadge(c) +
         `<button class="cmt-btn" data-cmt="${c.id}" title="${T[lang].comments}"><i class="ti ti-message-2"></i><span>${cn}</span></button>` +
         (g ? `<i class="ti ti-circle-check" style="color:var(--success)"></i>` : "") +
