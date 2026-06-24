@@ -168,61 +168,47 @@ function home() {
     setLeft("");
     return;
   }
-  if (!frontId || !roots.some((r) => r.id === frontId)) frontId = roots[0].id;
-
-  const SLOTS = {
-    front: { x: 490, y: 430, w: 420, top: true },
-    left:  { x: 200, y: 235, w: 210 },
-    right: { x: 780, y: 235, w: 210 }
-  };
-  const others = roots.filter((r) => r.id !== frontId);
-  const slotOf = { [frontId]: "front" };
-  if (others[0]) slotOf[others[0].id] = "left";
-  if (others[1]) slotOf[others[1].id] = "right";
-
+  // все три раздела развёрнуты: [0] слева, [1] справа, [2] снизу по центру
+  const SLOTS = [
+    { x: 250,  y: 150 },
+    { x: 1230, y: 150 },
+    { x: 740,  y: 545 }
+  ];
+  const W = 420;
   const iconOf = {};
   roots.forEach((r, i) => (iconOf[r.id] = ICONS[i % ICONS.length]));
-
   const ov = pct({ children: roots });
-  const C = 2 * Math.PI * 124;
-  const dashoffset = C * (1 - ov / 100);
 
-  const cards = roots.map((sec) => {
-    const slot = slotOf[sec.id], pos = SLOTS[slot], p = pct(sec), ic = iconOf[sec.id];
-    const tf = pos.top ? "translate(-50%,0)" : "translate(-50%,-50%)";
-    const style = `left:${pos.x}px;top:${pos.y}px;width:${pos.w}px;transform:${tf}`;
-    if (slot === "front") {
-      const subs = (sec.children || []).map((c) => {
-        const cp = pct(c), col = cp >= 100 ? "var(--success)" : (cp > 0 ? "var(--pink)" : "rgba(255,255,255,.25)");
-        return `<div class="subrow" data-open="${c.id}">` +
-          `<span class="dot" style="background:${col}"></span>` +
-          `<span class="t">${esc(title(c))}</span>` +
-          `<span class="b"><span style="width:${cp}%;background:${cp >= 100 ? "var(--success)" : "var(--pink)"}"></span></span>` +
-          `<span class="p">${cp}%</span></div>`;
-      }).join("");
-      return `<div class="card front" style="${style}">` +
-        `<div class="card-head"><i class="ic ti ${ic}"></i>` +
-        `<button class="detail-btn" data-open="${sec.id}">${T[lang].details} <i class="ti ti-arrow-right"></i></button></div>` +
-        `<div class="nm">${esc(title(sec))}</div>` +
-        `<div class="ovbox"><div class="big">${p}%</div><div class="lab">${T[lang].sectionProgress}</div></div>` +
-        (subs || `<div class="empty">${T[lang].empty}</div>`) +
-        `</div>`;
-    }
-    return `<div class="card back" data-swap="${sec.id}" style="${style}">` +
-      `<i class="ic ti ${ic}"></i><div class="nm">${esc(title(sec))}</div>` +
-      `<div class="ring2"><div class="bar"><span style="width:${p}%"></span></div><div class="pc">${p}%</div></div></div>`;
+  const cards = roots.slice(0, 3).map((sec, i) => {
+    const pos = SLOTS[i] || SLOTS[2], p = pct(sec), ic = iconOf[sec.id];
+    const style = `left:${pos.x}px;top:${pos.y}px;width:${W}px;transform:translate(-50%,0)`;
+    const subs = (sec.children || []).map((c) => {
+      const cp = pct(c), col = cp >= 100 ? "var(--success)" : (cp > 0 ? "var(--pink)" : "rgba(255,255,255,.25)");
+      return `<div class="subrow">` +
+        `<span class="dot" style="background:${col}"></span>` +
+        `<span class="t">${esc(title(c))}</span>` +
+        `<span class="b"><span style="width:${cp}%;background:${cp >= 100 ? "var(--success)" : "var(--pink)"}"></span></span>` +
+        `<span class="p">${cp}%</span></div>`;
+    }).join("");
+    return `<div class="card front" style="${style}">` +
+      `<div class="card-head"><i class="ic ti ${ic}"></i>` +
+      `<button class="detail-btn" data-open="${sec.id}">${T[lang].details} <i class="ti ti-arrow-right"></i></button></div>` +
+      `<div class="nm">${esc(title(sec))}</div>` +
+      `<div class="ovbox"><div class="big">${p}%</div><div class="lab">${T[lang].sectionProgress}</div></div>` +
+      (subs || `<div class="empty">${T[lang].empty}</div>`) +
+      `</div>`;
   }).join("");
 
   const links =
-    `<line x1="490" y1="235" x2="200" y2="235"/><circle cx="345" cy="235" r="2.5"/>` +
-    `<line x1="490" y1="235" x2="780" y2="235"/><circle cx="635" cy="235" r="2.5"/>` +
-    `<line x1="490" y1="235" x2="490" y2="430"/><circle cx="490" cy="332" r="2.5"/>`;
+    `<line x1="740" y1="300" x2="300" y2="200"/><circle cx="520" cy="250" r="2.5"/>` +
+    `<line x1="740" y1="300" x2="1180" y2="200"/><circle cx="960" cy="250" r="2.5"/>` +
+    `<line x1="740" y1="300" x2="740" y2="545"/><circle cx="740" cy="422" r="2.5"/>`;
 
   setLeft(`<span class="overall">${ov}% ${T[lang].started}</span>`);
   document.getElementById("stage").innerHTML =
     `<div class="sphere-stage">` +
       `<div class="stage-title">Salary Project Roadmap</div>` +
-      `<svg class="links" viewBox="0 0 980 800" preserveAspectRatio="none">` +
+      `<svg class="links" viewBox="0 0 1480 860" preserveAspectRatio="none">` +
         `<g stroke="#E8005A" stroke-width="1.4" opacity=".5" fill="#ff4d92">${links}</g></svg>` +
       `<div class="orb-wrap">` +
         `<div class="halo"></div>` +
