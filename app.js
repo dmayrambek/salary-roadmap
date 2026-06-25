@@ -6,13 +6,20 @@ import {
 const COL = "nodes";
 
 let lang = "ru";
-let view = { t: "home" };   // {t:'home'} | {t:'node', id}
 let tree = [];
 let seeding = false;
+let loaded = false;   // true, когда данные пришли из Firestore
+let frontId = null;   // верхний раздел, стоящий «впереди» на сцене со сферой
+let cmtOpenId = null; // у какой задачи открыта панель комментариев
+const ICONS = ["ti-settings", "ti-building-bank", "ti-trending-up", "ti-box", "ti-star"];
 
 const T = {
-  ru: { started: "выполнено", back: "Назад", empty: "Пунктов пока нет — добавьте через админку", finish: "ФИНИШ" },
-  en: { started: "done", back: "Back", empty: "No items yet — add them via admin", finish: "FINISH" }
+  ru: { started: "выполнено", back: "Назад", empty: "Пунктов пока нет — добавьте через админку", finish: "ФИНИШ",
+        details: "Смотреть детальнее", sectionProgress: "общий прогресс<br>раздела",
+        comments: "Комментарии", commentPh: "Написать комментарий…", send: "Отправить", noComments: "Комментариев пока нет", delComment: "Удалить комментарий?" },
+  en: { started: "done", back: "Back", empty: "No items yet — add them via admin", finish: "FINISH",
+        details: "View details", sectionProgress: "section<br>progress",
+        comments: "Comments", commentPh: "Write a comment…", send: "Send", noComments: "No comments yet", delComment: "Delete comment?" }
 };
 
 // Стартовая структура. Заливается ОДИН раз, если база пустая.
@@ -43,6 +50,19 @@ const SEED = [
 
 const CACHE_KEY = "roadmap_nodes_v1";
 
+// приоритет задачи: highest / high / medium / low (пусто = не задан)
+const PRIO_LABEL = { highest: "Highest", high: "High", medium: "Medium", low: "Low" };
+
+// ---------- навигация через hash ----------
+// Текущая страница хранится в адресной строке (#/<id>), а не в памяти.
+// Благодаря этому: F5 не сбрасывает на главную, а кнопка/жест «назад» работают.
+function currentView() {
+  const id = decodeURIComponent(location.hash.replace(/^#\/?/, ""));
+  return id ? { t: "node", id } : { t: "home" };
+}
+function go(id) { location.hash = id ? "#/" + encodeURIComponent(id) : "#/"; }
+window.addEventListener("hashchange", render);
+
 start();
 
 function initialPaint() {
@@ -60,13 +80,19 @@ function start() {
   onSnapshot(collection(db, COL), (snap) => {
     const flat = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     if (flat.length === 0) { seed(); return; }
+    loaded = true;
     try { localStorage.setItem(CACHE_KEY, JSON.stringify(flat)); } catch (e) {}
     tree = buildTree(flat);
     render();
   }, (err) => {
-    // Если база недоступна — оставляем то, что уже показано (кэш/структура).
+    // Если база недоступна (например, истекли правила Firestore) — не зависаем
+    // на «Загрузка…», а показываем кэш/структуру либо кидаем на главную.
     console.error("Firestore:", err.message);
+    loaded = true;
+    render();
   });
+  // Страховка: если база молчит дольше 6 сек — перестаём ждать.
+  setTimeout(() => { if (!loaded) { loaded = true; render(); } }, 6000);
 }
 
 async function seed() {
@@ -108,7 +134,17 @@ function totalLeaves(n) { return isLeaf(n) ? 1 : n.children.reduce((a, c) => a +
 function doneLeaves(n) { return isLeaf(n) ? (n.done ? 1 : 0) : n.children.reduce((a, c) => a + doneLeaves(c), 0); }
 function pct(n) { return Math.round((doneLeaves(n) / Math.max(totalLeaves(n), 1)) * 100); }
 function title(n) { return n["title_" + lang] || n.title_ru || ""; }
+function descOf(n) { return n["description_" + lang] || n.description_ru || n.description || ""; }
 function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;"); }
+function prioBadge(n) {
+  return PRIO_LABEL[n.priority] ? `<span class="prio prio-${n.priority}">${PRIO_LABEL[n.priority]}</span>` : "";
+}
+function attachChips(n) {
+  let s = "";
+  if (n.link_url) s += `<a class="chip" href="${encodeURI(n.link_url)}" target="_blank" rel="noopener"><i class="ti ti-link"></i>${esc(n.link_title || n.link_url)}</a>`;
+  if (n.file_url) s += `<a class="chip" href="${encodeURI(n.file_url)}" target="_blank" rel="noopener"><i class="ti ti-eye"></i>${esc(n.file_title || "Просмотр")}</a>`;
+  return s ? `<div class="attach-row">${s}</div>` : "";
+}
 
 function findNode(id, nodes = tree) {
   for (const n of nodes) {
@@ -130,64 +166,81 @@ function wrap2(str) {
   return [w.slice(0, best + 1).join(" "), w.slice(best + 1).join(" ")];
 }
 
-// ---------- отрисовка дороги ----------
+// ---------- главный экран: сфера + разделы вокруг ----------
 function home() {
-  const N = tree.length;
-  const cols = tree.map((_, i) => Math.round((660 * (i + 1)) / (N + 1)));
-  const ny = 120, rt = 206, rb = 356, hubY = 44;
-  let s = "";
+  const roots = tree;
+  if (!roots.length) {
+    document.getElementById("stage").innerHTML = `<div class="empty">${T[lang].empty}</div>`;
+    setLeft("");
+    return;
+  }
+  // все три раздела развёрнуты: [0] слева, [1] справа, [2] снизу по центру
+  const SLOTS = [
+    { x: 250,  y: 150 },
+    { x: 1230, y: 150 },
+    { x: 740,  y: 545 }
+  ];
+  const W = 420;
+  const iconOf = {};
+  roots.forEach((r, i) => (iconOf[r.id] = ICONS[i % ICONS.length]));
+  const ov = pct({ children: roots });
 
-  // линии от Salary Roadmap к разделам
-  cols.forEach((x) => {
-    s += `<line x1="330" y1="${hubY + 14}" x2="${x}" y2="${ny - 28}" stroke="#E8005A" stroke-width="2" stroke-linecap="round" opacity="0.65"/>`;
-  });
+  const cards = roots.slice(0, 3).map((sec, i) => {
+    const pos = SLOTS[i] || SLOTS[2], p = pct(sec), ic = iconOf[sec.id];
+    const style = `left:${pos.x}px;top:${pos.y}px;width:${W}px;transform:translate(-50%,0)`;
+    const subs = (sec.children || []).map((c) => {
+      const cp = pct(c), col = cp >= 100 ? "var(--success)" : (cp > 0 ? "var(--pink)" : "rgba(255,255,255,.25)");
+      return `<div class="subrow">` +
+        `<span class="dot" style="background:${col}"></span>` +
+        `<span class="t">${esc(title(c))}</span>` +
+        `<span class="b"><span style="width:${cp}%;background:${cp >= 100 ? "var(--success)" : "var(--pink)"}"></span></span>` +
+        `<span class="p">${cp}%</span></div>`;
+    }).join("");
+    return `<div class="card front" style="${style}">` +
+      `<div class="card-head"><i class="ic ti ${ic}"></i>` +
+      `<button class="detail-btn" data-open="${sec.id}">${T[lang].details} <i class="ti ti-arrow-right"></i></button></div>` +
+      `<div class="nm">${esc(title(sec))}</div>` +
+      `<div class="ovbox"><div class="big">${p}%</div><div class="lab">${T[lang].sectionProgress}</div></div>` +
+      (subs || `<div class="empty">${T[lang].empty}</div>`) +
+      `</div>`;
+  }).join("");
 
-  // дороги вниз
-  cols.forEach((x) => {
-    s += `<line x1="${x}" y1="${rt}" x2="${x}" y2="${rb}" stroke="#E8005A" stroke-width="36" stroke-linecap="round" opacity="0.07"/>`;
-    s += `<line x1="${x}" y1="${rt}" x2="${x}" y2="${rb}" stroke="#000" stroke-width="30" stroke-linecap="round"/>`;
-    s += `<line x1="${x}" y1="${rt}" x2="${x}" y2="${rb}" stroke="#303138" stroke-width="26" stroke-linecap="round"/>`;
-    s += `<line x1="${x - 12.5}" y1="${rt}" x2="${x - 12.5}" y2="${rb}" stroke="#5a5b63" stroke-width="1.5"/>`;
-    s += `<line x1="${x + 12.5}" y1="${rt}" x2="${x + 12.5}" y2="${rb}" stroke="#5a5b63" stroke-width="1.5"/>`;
-    s += `<line x1="${x}" y1="${rt}" x2="${x}" y2="${rb}" stroke="#ff2e88" stroke-width="3" stroke-dasharray="16 15"/>`;
-  });
+  const links =
+    `<line x1="740" y1="300" x2="300" y2="200"/><circle cx="520" cy="250" r="2.5"/>` +
+    `<line x1="740" y1="300" x2="1180" y2="200"/><circle cx="960" cy="250" r="2.5"/>` +
+    `<line x1="740" y1="300" x2="740" y2="545"/><circle cx="740" cy="422" r="2.5"/>`;
 
-  // финишная линия
-  const fx1 = Math.min(...cols) - 40, fx2 = Math.max(...cols) + 40;
-  s += `<line x1="${fx1}" y1="364" x2="${fx2}" y2="364" stroke="#E8005A" stroke-width="5" stroke-linecap="round"/>`;
-  s += `<text x="330" y="388" text-anchor="middle" font-family="Unbounded,sans-serif" font-size="13" font-weight="700" fill="#E8005A" letter-spacing="2">${T[lang].finish}</text>`;
-
-  // старт
-  s += `<circle cx="330" cy="${hubY}" r="20" fill="#E8005A" opacity="0.13"/><circle cx="330" cy="${hubY}" r="9" fill="#E8005A"/>`;
-  s += `<text x="330" y="22" text-anchor="middle" font-family="Unbounded,sans-serif" font-size="16" font-weight="700" fill="#E8005A">Salary Roadmap</text>`;
-
-  // разделы
-  tree.forEach((sec, i) => {
-    const x = cols[i], p = pct(sec), r = 29, C = 2 * Math.PI * r, dash = (p / 100) * C;
-    const col = p === 100 ? "#34d399" : "#ff4d92";
-    s += `<g data-open="${sec.id}">`;
-    s += `<circle cx="${x}" cy="${ny}" r="42" fill="transparent"/>`;
-    s += `<circle class="node-bg" cx="${x}" cy="${ny}" r="34" fill="${p === 100 ? "rgba(52,211,153,0.10)" : "rgba(232,0,90,0.08)"}"/>`;
-    s += `<circle cx="${x}" cy="${ny}" r="${r}" fill="#141414" stroke="#2e2e2e" stroke-width="6"/>`;
-    s += `<circle cx="${x}" cy="${ny}" r="${r}" fill="none" stroke="${col}" stroke-width="6" stroke-linecap="round" stroke-dasharray="${dash} ${C}" transform="rotate(-90 ${x} ${ny})"/>`;
-    s += `<text x="${x}" y="${ny + 6}" text-anchor="middle" font-size="15" font-weight="500" fill="#fff">${p}%</text>`;
-    const ln = wrap2(title(sec));
-    const yb = ln.length === 1 ? ny + 58 : ny + 52;
-    ln.forEach((line, k) => {
-      s += `<text x="${x}" y="${yb + k * 16}" text-anchor="middle" font-family="Unbounded,sans-serif" font-size="12.5" font-weight="500" fill="#f2f2f2">${esc(line)}</text>`;
-    });
-    s += `</g>`;
-  });
-
-  // overall-процент убран по запросу — подпись авторов теперь в index.html (фикс. блок снизу слева)
-  setLeft("");
+  setLeft(`<span class="overall">${ov}% ${T[lang].started}</span>`);
   document.getElementById("stage").innerHTML =
-    `<div class="panel"><svg viewBox="0 0 660 404" role="img" aria-label="Salary Roadmap">${s}</svg></div>`;
+    `<div class="sphere-stage">` +
+      `<div class="stage-title">Salary Project Roadmap</div>` +
+      `<svg class="links" viewBox="0 0 1480 860" preserveAspectRatio="none">` +
+        `<g stroke="#E8005A" stroke-width="1.4" opacity=".5" fill="#ff4d92">${links}</g></svg>` +
+      `<div class="orb-wrap">` +
+        `<div class="halo"></div>` +
+        `<div class="glow"></div>` +
+        `<div class="orbit"><div class="ring"></div></div>` +
+        `<div class="orbit b"><div class="ring"></div></div>` +
+        `<svg class="globe" viewBox="0 0 120 120" role="img" aria-label="O!Bank">` +
+          `<defs><radialGradient id="core" cx="48%" cy="44%" r="74%">` +
+            `<stop offset="0%" stop-color="#ffd0e2"/><stop offset="24%" stop-color="#ff7ab0"/>` +
+            `<stop offset="58%" stop-color="#E8005A"/><stop offset="100%" stop-color="#37001a"/></radialGradient></defs>` +
+          `<circle cx="60" cy="60" r="47" fill="url(#core)"/>` +
+          `<circle cx="60" cy="60" r="47" fill="none" stroke="#ff8fbb" stroke-width="1" opacity=".85"/>` +
+          `<ellipse cx="60" cy="60" rx="47" ry="15" fill="none" stroke="#ffe1ec" stroke-width=".6" opacity=".4"/>` +
+          `<ellipse cx="60" cy="60" rx="47" ry="32" fill="none" stroke="#ffe1ec" stroke-width=".6" opacity=".3"/>` +
+          `<ellipse cx="60" cy="60" rx="47" ry="47" fill="none" stroke="#fff0f6" stroke-width=".6" opacity=".5"/>` +
+          `<ellipse cx="60" cy="60" rx="29" ry="47" fill="none" stroke="#fff0f6" stroke-width=".6" opacity=".4"/>` +
+          `<ellipse cx="60" cy="60" rx="12" ry="47" fill="none" stroke="#fff0f6" stroke-width=".6" opacity=".3"/>` +
+        `</svg>` +
+        `<div class="backlight"></div><div class="orb-label">O!Bank</div>` +
+      `</div>` +
+      cards +
+    `</div>`;
 }
 
 // ---------- страница раздела/подраздела ----------
 function page(node) {
-  if (!node) { view = { t: "home" }; return render(); }
   const p = pct(node);
   let h = `<div class="page-head"><span class="page-title">${esc(title(node))}</span>` +
     `<span class="bar" style="max-width:160px"><span style="width:${p}%"></span></span>` +
@@ -200,11 +253,15 @@ function page(node) {
   ch.forEach((c) => {
     if (isLeaf(c)) {
       const g = !!c.done;
-      h += `<label class="row task${g ? " done" : ""}">` +
+      const cn = (c.comments || []).length;
+      h += `<div class="row task${g ? " done" : ""}">` +
         `<input type="checkbox" data-id="${c.id}" ${g ? "checked" : ""}>` +
-        `<span class="name">${esc(title(c))}</span>` +
+        `<div class="taskmain"><span class="name">${esc(title(c))}</span>${attachChips(c)}</div>` +
+        `<span class="desc">${esc(descOf(c))}</span>` +
+        prioBadge(c) +
+        `<button class="cmt-btn" data-cmt="${c.id}" title="${T[lang].comments}"><i class="ti ti-message-2"></i><span>${cn}</span></button>` +
         (g ? `<i class="ti ti-circle-check" style="color:var(--success)"></i>` : "") +
-        `</label>`;
+        `</div>`;
     } else {
       const cp = pct(c);
       h += `<div class="row" data-open="${c.id}">` +
@@ -226,10 +283,76 @@ function render() {
   if (!tree.length) {
     document.getElementById("stage").innerHTML = '<div class="loading">Загрузка…</div>';
     setLeft("");
-    return;
+  } else {
+    const view = currentView();
+    if (view.t === "home") home();
+    else {
+      const node = findNode(view.id);
+      // Узел не найден — сразу показываем главную, не зависаем; появится из базы — render() откроет.
+      if (node) page(node); else home();
+    }
   }
-  if (view.t === "home") home();
-  else page(findNode(view.id));
+  if (cmtOpenId) { ensureDrawer(); fillDrawer(); }   // живое обновление открытой панели комментариев
+}
+
+// ---------- комментарии (пишутся прямо в роадмэпе, без входа) ----------
+function fmtTime(ts) {
+  try {
+    return new Date(ts).toLocaleString(lang === "ru" ? "ru-RU" : "en-US",
+      { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" });
+  } catch (e) { return ""; }
+}
+function ensureDrawer() {
+  if (document.getElementById("cmtDrawer")) return;
+  const d = document.createElement("div");
+  d.id = "cmtDrawer"; d.className = "cmt-drawer";
+  d.innerHTML =
+    `<div class="cmt-head"><span class="cmt-title" id="cmtTitle"></span>` +
+    `<button class="cmt-x" id="cmtClose" aria-label="close">✕</button></div>` +
+    `<div class="cmt-list" id="cmtList"></div>` +
+    `<div class="cmt-add"><textarea id="cmtText" placeholder="${T[lang].commentPh}"></textarea>` +
+    `<button class="cmt-send" id="cmtSend">${T[lang].send}</button></div>`;
+  document.body.appendChild(d);
+  document.getElementById("cmtClose").addEventListener("click", closeComments);
+  document.getElementById("cmtSend").addEventListener("click", sendComment);
+  document.getElementById("cmtText").addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) sendComment();
+  });
+}
+function openComments(id) {
+  ensureDrawer(); cmtOpenId = id; fillDrawer();
+  document.getElementById("cmtDrawer").classList.add("open");
+}
+function closeComments() {
+  cmtOpenId = null;
+  const d = document.getElementById("cmtDrawer"); if (d) d.classList.remove("open");
+}
+function fillDrawer() {
+  const d = document.getElementById("cmtDrawer"); if (!d) return;
+  const n = findNode(cmtOpenId); if (!n) { closeComments(); return; }
+  document.getElementById("cmtTitle").textContent = title(n);
+  const arr = (n.comments || []).slice().sort((a, b) => (a.ts || 0) - (b.ts || 0));
+  document.getElementById("cmtList").innerHTML = arr.length
+    ? arr.map((c) => `<div class="cmt-item"><button class="cmt-del" data-del-cmt="${c.ts}" aria-label="delete">✕</button><div class="cmt-txt">${esc(c.text)}</div><div class="cmt-ts">${fmtTime(c.ts)}</div></div>`).join("")
+    : `<div class="cmt-empty">${T[lang].noComments}</div>`;
+}
+async function sendComment() {
+  if (!cmtOpenId) return;
+  const ta = document.getElementById("cmtText"); const txt = (ta.value || "").trim();
+  if (!txt) return;
+  const n = findNode(cmtOpenId); if (!n) return;
+  const arr = [...(n.comments || []), { text: txt, ts: Date.now() }];
+  ta.value = "";
+  try { await updateDoc(doc(db, COL, cmtOpenId), { comments: arr }); }   // onSnapshot обновит панель
+  catch (e) { console.error("comment:", e.message); }
+}
+async function deleteComment(ts) {
+  if (!cmtOpenId) return;
+  if (!confirm(T[lang].delComment)) return;
+  const n = findNode(cmtOpenId); if (!n) return;
+  const arr = (n.comments || []).filter((c) => String(c.ts) !== String(ts));
+  try { await updateDoc(doc(db, COL, cmtOpenId), { comments: arr }); }
+  catch (e) { console.error("comment del:", e.message); }
 }
 
 // ---------- события ----------
@@ -242,9 +365,26 @@ document.addEventListener("click", (e) => {
     render();
     return;
   }
-  if (e.target.closest("[data-back]")) { view = { t: "home" }; render(); return; }
+  // «Назад» — на уровень выше (в родителя), а не сразу на главную
+  if (e.target.closest("[data-back]")) {
+    const cur = findNode(currentView().id);
+    go(cur && cur.parentId ? cur.parentId : "");
+    return;
+  }
+  // удалить комментарий
+  const dc = e.target.closest("[data-del-cmt]");
+  if (dc) { deleteComment(dc.getAttribute("data-del-cmt")); return; }
+
+  // открыть панель комментариев задачи
+  const cm = e.target.closest("[data-cmt]");
+  if (cm) { openComments(cm.getAttribute("data-cmt")); return; }
+
+  // свап раздела на передний план (карусель на главном экране)
+  const sw = e.target.closest("[data-swap]");
+  if (sw) { frontId = sw.getAttribute("data-swap"); render(); return; }
+
   const op = e.target.closest("[data-open]");
-  if (op) { view = { t: "node", id: op.getAttribute("data-open") }; render(); }
+  if (op) { go(op.getAttribute("data-open")); }
 });
 
 document.addEventListener("change", (e) => {
