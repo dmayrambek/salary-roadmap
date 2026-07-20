@@ -210,8 +210,7 @@ function home() {
     `<line x1="740" y1="300" x2="1180" y2="200"/><circle cx="960" cy="250" r="2.5"/>` +
     `<line x1="740" y1="300" x2="740" y2="545"/><circle cx="740" cy="422" r="2.5"/>`;
 
-  // overall-процент убран по запросу — подпись авторов в index.html (фикс. блок снизу слева)
-  setLeft("");
+  setLeft(`<span class="credit">created by Diana Mayrambekova</span>`);
   document.getElementById("stage").innerHTML =
     `<div class="sphere-stage">` +
       `<div class="stage-title">Salary Project Roadmap</div>` +
@@ -255,9 +254,15 @@ function page(node) {
     if (isLeaf(c)) {
       const g = !!c.done;
       const cn = (c.comments || []).length;
+      const nameHtml = c.link_url
+        ? `<a class="name" href="${encodeURI(c.link_url)}" target="_blank" rel="noopener" style="color:var(--pink-light);text-decoration:none">${esc(title(c))} <i class="ti ti-external-link" style="font-size:13px"></i></a>`
+        : `<span class="name">${esc(title(c))}</span>`;
+      const fileChip = c.file_url
+        ? `<div class="attach-row"><a class="chip" href="${encodeURI(c.file_url)}" target="_blank" rel="noopener"><i class="ti ti-eye"></i>${esc(c.file_title || "Просмотр")}</a></div>`
+        : "";
       h += `<div class="row task${g ? " done" : ""}">` +
         `<input type="checkbox" data-id="${c.id}" ${g ? "checked" : ""}>` +
-        `<div class="taskmain"><span class="name">${esc(title(c))}</span>${attachChips(c)}</div>` +
+        `<div class="taskmain">${nameHtml}${fileChip}</div>` +
         `<span class="desc">${esc(descOf(c))}</span>` +
         prioBadge(c) +
         `<button class="cmt-btn" data-cmt="${c.id}" title="${T[lang].comments}"><i class="ti ti-message-2"></i><span>${cn}</span></button>` +
