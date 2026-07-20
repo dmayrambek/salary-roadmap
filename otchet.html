@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Inter:wght@400;500&display=swap" rel="stylesheet" />
 <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
 :root{
   --pink:#E8005A; --pink-light:#ff4d92; --bg:#060608; --panel:#0b0b0e; --surface:#15151a;
@@ -17,8 +18,6 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif;font-size:14px}
 #app{max-width:100%;margin:0 auto;padding:18px 22px 60px}
-
-/* ---- вход ---- */
 .center{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
 .login{width:100%;max-width:420px;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:32px 28px}
 .brand{display:flex;align-items:center;gap:9px;margin-bottom:22px}
@@ -37,9 +36,6 @@ input[type=email]:focus{outline:none;border-color:var(--pink)}
 .msg{margin-top:13px;font-size:13px;border-radius:10px;padding:11px 13px;display:none;line-height:1.45}
 .msg.show{display:block}
 .msg.err{background:rgba(248,113,113,.10);color:var(--danger);border:1px solid rgba(248,113,113,.25)}
-.msg.ok{background:rgba(52,211,153,.10);color:var(--success);border:1px solid rgba(52,211,153,.25)}
-
-/* ---- шапка отчёта ---- */
 .topbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
 .hbtn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);background:transparent;color:var(--text);border-radius:9px;padding:8px 13px;font:inherit;font-size:13px;cursor:pointer;transition:all .15s}
 .hbtn:hover{border-color:var(--pink);color:var(--pink-light)}
@@ -47,16 +43,13 @@ input[type=email]:focus{outline:none;border-color:var(--pink)}
 .who{font-size:12px;color:var(--muted)}
 h2.title{font-family:'Unbounded',sans-serif;font-weight:500;font-size:22px;color:var(--pink);margin:14px 0 4px}
 .updated{font-size:12px;color:var(--muted);margin-bottom:16px}
-
-/* ---- вкладки ---- */
 .tabs{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:18px}
 .tab{font-size:12.5px;padding:8px 13px;border-radius:9px;background:var(--surface);border:1px solid var(--border);color:#c7c7cc;cursor:pointer;white-space:nowrap;transition:all .15s}
 .tab:hover{color:var(--text);border-color:var(--pink)}
 .tab.active{background:var(--pink);color:#fff;border-color:var(--pink)}
-
-/* ---- таблица ---- */
 .cap{font-size:12.5px;color:var(--muted);margin-bottom:12px;line-height:1.5}
 .blocktitle{font-family:'Unbounded',sans-serif;font-weight:500;font-size:15px;margin:22px 0 10px}
+.chartbox{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin:6px 0 16px;height:340px;position:relative}
 .tablewrap{border:1px solid var(--border);border-radius:10px;overflow:auto;max-width:100%}
 table{border-collapse:collapse;font-size:12.5px}
 thead th{position:sticky;top:0;background:var(--pink);color:#fff;font-weight:500;text-align:left;padding:8px 11px;white-space:normal;border:1px solid rgba(255,255,255,0.20);max-width:230px;overflow-wrap:break-word;vertical-align:bottom}
@@ -65,13 +58,12 @@ tbody td{padding:7px 11px;border:1px solid rgba(255,255,255,0.13);white-space:no
 tbody td.num{text-align:right;white-space:nowrap;max-width:none;font-variant-numeric:tabular-nums}
 tbody tr:hover{background:rgba(255,255,255,0.03)}
 tbody tr.total td{font-weight:600;background:rgba(255,255,255,0.04)}
-
-/* ---- поиск + постранично ---- */
 .controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
 .search{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:9px 12px;min-width:280px}
 .search i{color:var(--muted);font-size:15px}
 .search input{background:none;border:none;color:var(--text);font:inherit;font-size:13.5px;width:100%;outline:none}
 .count{font-size:12px;color:var(--muted)}
+select{background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:9px;padding:9px 12px;font:inherit;font-size:13px;max-width:360px}
 .pager{display:flex;align-items:center;gap:6px;margin-top:14px;font-size:12.5px;color:var(--muted);flex-wrap:wrap}
 .pg{padding:5px 10px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;font:inherit;font-size:12.5px}
 .pg:hover{border-color:var(--pink)}
@@ -81,10 +73,7 @@ tbody tr.total td{font-weight:600;background:rgba(255,255,255,0.04)}
 </style>
 </head>
 <body>
-
-<div id="root">
-  <div class="center"><div class="loading">Загрузка…</div></div>
-</div>
+<div id="root"><div class="center"><div class="loading">Загрузка…</div></div></div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -97,20 +86,26 @@ const app=initializeApp(cfg); const db=getFirestore(app); const auth=getAuth(app
 
 const ALLOWED=/@(gts\.kg|obank\.kg)$/i;
 const PAGE=25;
+const MONTHS=["Январь","Февраль","Март","Апрель","Май","Июнь"];
+const MSHORT=["Янв","Фев","Мар","Апр","Май","Июн"];
+const LINE_COLORS=["#E8005A","#3b7fd4","#34d399","#f5a623","#9b59b6","#ff7f50","#1abc9c","#e84393","#00b894","#a29bfe"];
 const root=document.getElementById("root");
 const esc=(s)=>String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
 const isNum=(v)=>typeof v==="number";
+const toNum=(v)=>typeof v==="number"?v:(typeof v==="string"&&/^-?\d+(\.\d+)?$/.test(v)?parseFloat(v):0);
 const fmtNum=(v)=>Number.isInteger(v)?v.toLocaleString("ru-RU"):v.toLocaleString("ru-RU",{maximumFractionDigits:2});
 const fmt=(v)=>isNum(v)?fmtNum(v):esc(v);
+const shortName=(v)=>String(v).replace(/^[\d.]+\s*-\s*/,"").trim();
 
-let DATA=null;
-const detail={q:"",page:0};
+let DATA=null; const state={}; let charts=[];
+function clearCharts(){ charts.forEach(c=>{try{c.destroy()}catch(e){}}); charts=[]; }
+function monthIdx(columns){ return MONTHS.map(m=>columns.findIndex(c=>String(c).includes(m))); }
+function nameIdx(columns){ const i=columns.findIndex(c=>/Организаци|Наименование/i.test(c)); return i>=0?i:0; }
 
 /* ---------- вход ---------- */
-function loginScreen(state){
-  const sent=state&&state.sent;
-  root.innerHTML=`
-  <div class="center"><div class="login">
+function loginScreen(state2){
+  const sent=state2&&state2.sent;
+  root.innerHTML=`<div class="center"><div class="login">
     <div class="brand"><span class="dot"></span><span>O!Bank · Операционный блок</span></div>
     ${sent?`
       <div class="lockic" style="color:var(--success);background:rgba(52,211,153,.1);border-color:rgba(52,211,153,.25)"><i class="ti ti-mail-check"></i></div>
@@ -147,21 +142,19 @@ function loginScreen(state){
   };
 }
 
-/* ---------- отчёт ---------- */
+/* ---------- данные ---------- */
 async function ensureData(){
   if(DATA) return;
   const snap=await getDoc(doc(db,"report_current","data"));
   if(!snap.exists()) throw new Error("Данные отчёта не найдены.");
   DATA=JSON.parse(snap.data().payload);
 }
-
-function shell(inner,user){
+function shell(user){
   return `<div id="app">
     <div class="topbar">
       <button class="hbtn" id="back"><i class="ti ti-arrow-left"></i> Назад</button>
       <button class="hbtn" id="home"><i class="ti ti-home"></i> Домой</button>
-      <span class="spacer"></span>
-      <span class="who">${esc(user)}</span>
+      <span class="spacer"></span><span class="who">${esc(user)}</span>
       <button class="hbtn" id="logout"><i class="ti ti-logout"></i> Выйти</button>
     </div>
     <h2 class="title">Текущий отчёт</h2>
@@ -170,91 +163,151 @@ function shell(inner,user){
     <div id="content"></div>
   </div>`;
 }
-
 function renderTabs(activeId){
   document.getElementById("tabs").innerHTML=DATA.order.map(id=>{
     const s=DATA.sheets[id]; if(!s) return "";
     return `<span class="tab ${id===activeId?"active":""}" data-tab="${id}">${esc(s.name)}</span>`;
   }).join("");
+  document.querySelectorAll("[data-tab]").forEach(t=>t.onclick=()=>{ location.hash=t.getAttribute("data-tab"); });
 }
-
 function tableHTML(columns,rows){
   const numcol=columns.map((c,i)=>rows.some(r=>isNum(r[i])));
   const head=columns.map((c,i)=>`<th class="${numcol[i]?"num":""}">${esc(c)}</th>`).join("");
   const body=rows.map(r=>{
-    const isTotal=typeof r[0]==="string"&&/^ИТОГО/i.test(r[0]);
+    const isTotal=typeof r[0]==="string"&&/^(ИТОГО|Общий итог)/i.test(r[0]);
     const tds=r.map((v,i)=>`<td class="${numcol[i]?"num":""}">${fmt(v)}</td>`).join("");
     return `<tr class="${isTotal?"total":""}">${tds}</tr>`;
   }).join("");
   return `<div class="tablewrap"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
 }
-
+function pagerHTML(page,pages){
+  let h=`<button class="pg" data-pg="prev" ${page===0?"disabled":""}>‹</button>`;
+  const win=[]; for(let p=0;p<pages;p++){ if(p<3||p>=pages-1||Math.abs(p-page)<=1) win.push(p); }
+  let last=-1; win.forEach(p=>{ if(p-last>1) h+=`<span>…</span>`; h+=`<button class="pg ${p===page?"active":""}" data-pg="${p}">${p+1}</button>`; last=p; });
+  h+=`<button class="pg" data-pg="next" ${page>=pages-1?"disabled":""}>›</button>`; return h;
+}
+/* таблица с поиском/страницами (в свой контейнер) */
+function tableModule(el,key,columns,rows){
+  const st=state[key]||(state[key]={q:"",page:0}); const big=rows.length>30;
+  function draw(){
+    const q=st.q.trim().toLowerCase();
+    const all=q?rows.filter(r=>r.some(v=>String(v).toLowerCase().includes(q))):rows;
+    const pages=Math.max(1,Math.ceil(all.length/PAGE)); if(st.page>=pages)st.page=0;
+    const slice=big?all.slice(st.page*PAGE,st.page*PAGE+PAGE):all;
+    let h=""; if(big) h+=`<div class="controls"><div class="search"><i class="ti ti-search"></i><input id="q_${key}" placeholder="Поиск…" value="${esc(st.q)}"></div><span class="count">${all.length} из ${rows.length}</span></div>`;
+    h+=tableHTML(columns,slice); if(big) h+=`<div class="pager">${pagerHTML(st.page,pages)}</div>`;
+    el.innerHTML=h;
+    if(big){
+      const qi=el.querySelector(`#q_${key}`);
+      qi.oninput=()=>{ st.q=qi.value; st.page=0; draw(); const n=el.querySelector(`#q_${key}`); n.focus(); n.setSelectionRange(n.value.length,n.value.length); };
+      el.querySelectorAll("[data-pg]").forEach(b=>b.onclick=()=>{const v=b.getAttribute("data-pg"); if(v==="prev")st.page--;else if(v==="next")st.page++;else st.page=+v; draw();});
+    }
+  }
+  draw();
+}
+/* графики */
+function barBlock(canvasId,block){
+  const ci=block.columns.length-1; // ФОТ за 6 месяцев — последняя колонка
+  const rows=block.rows.filter(r=>!/^(ИТОГО|Общий итог)/i.test(String(r[0])));
+  const labels=rows.map(r=>shortName(r[0]));
+  const values=rows.map(r=>toNum(r[ci]));
+  charts.push(new Chart(document.getElementById(canvasId),{type:"bar",
+    data:{labels,datasets:[{data:values,backgroundColor:"#E8005A",borderRadius:3}]},
+    options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},
+      tooltip:{callbacks:{label:(c)=>c.parsed.x.toLocaleString("ru-RU")}}},
+      scales:{x:{ticks:{color:"#8a8a92",callback:v=>v.toLocaleString("ru-RU")},grid:{color:"rgba(255,255,255,.06)"}},
+              y:{ticks:{color:"#c7c7cc",font:{size:11}},grid:{display:false}}}}}));
+}
+function lineMulti(canvasId,columns,rows){
+  const mi=monthIdx(columns), ni=nameIdx(columns);
+  const ds=rows.map((r,i)=>({label:shortName(r[ni]),data:mi.map(ix=>ix>=0?toNum(r[ix]):null),
+    borderColor:LINE_COLORS[i%LINE_COLORS.length],backgroundColor:"transparent",tension:.25,pointRadius:2,borderWidth:2}));
+  charts.push(new Chart(document.getElementById(canvasId),{type:"line",data:{labels:MSHORT,datasets:ds},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"nearest"},
+      plugins:{legend:{labels:{color:"#c7c7cc",boxWidth:12,font:{size:11}}},
+        tooltip:{callbacks:{label:(c)=>c.dataset.label+": "+(c.parsed.y||0).toLocaleString("ru-RU")}}},
+      scales:{x:{ticks:{color:"#8a8a92"},grid:{color:"rgba(255,255,255,.06)"}},
+              y:{ticks:{color:"#8a8a92",callback:v=>v.toLocaleString("ru-RU")},grid:{color:"rgba(255,255,255,.06)"}}}}}));
+}
+function lineAgg(canvasId,columns,rows,orgIdx){
+  const mi=monthIdx(columns), ni=nameIdx(columns);
+  let label,data;
+  if(orgIdx>=0){ label=shortName(rows[orgIdx][ni]); data=mi.map(ix=>ix>=0?toNum(rows[orgIdx][ix]):0); }
+  else{ label="Все организации (суммарно)"; data=mi.map(ix=>ix>=0?rows.reduce((a,r)=>a+toNum(r[ix]),0):0); }
+  charts.push(new Chart(document.getElementById(canvasId),{type:"line",
+    data:{labels:MSHORT,datasets:[{label,data,borderColor:"#E8005A",backgroundColor:"rgba(232,0,90,.08)",fill:true,tension:.25,pointRadius:4,borderWidth:3}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:"#c7c7cc"}},
+      tooltip:{callbacks:{label:(c)=>(c.parsed.y||0).toLocaleString("ru-RU")}}},
+      scales:{x:{ticks:{color:"#8a8a92"},grid:{color:"rgba(255,255,255,.06)"}},
+              y:{ticks:{color:"#8a8a92",callback:v=>v.toLocaleString("ru-RU")},grid:{color:"rgba(255,255,255,.06)"}}}}}));
+}
+/* контент вкладки */
 function renderContent(id){
+  clearCharts();
   const s=DATA.sheets[id]; const c=document.getElementById("content");
   if(!s){ c.innerHTML="<div class='loading'>Лист не найден</div>"; return; }
+
   if(s.type==="blocks"){
-    c.innerHTML=s.blocks.map(b=>`<div class="blocktitle">${esc(b.title)}</div>${tableHTML(b.columns,b.rows)}`).join("");
+    let h=""; s.blocks.forEach((b,bi)=>{
+      h+=`<div class="blocktitle">${esc(b.title)}</div>`;
+      if(id==="top10_fot") h+=`<div class="chartbox"><canvas id="ch_${id}_${bi}"></canvas></div>`;
+      h+=`<div id="tb_${id}_${bi}"></div>`;
+    });
+    c.innerHTML=h;
+    s.blocks.forEach((b,bi)=>{ tableModule(document.getElementById(`tb_${id}_${bi}`),`${id}_${bi}`,b.columns,b.rows);
+      if(id==="top10_fot") barBlock(`ch_${id}_${bi}`,b); });
     return;
   }
-  if(id==="detalny"){ renderDetail(); return; }
-  c.innerHTML=(s.caption?`<div class="cap">${esc(s.caption)}</div>`:"")+tableHTML(s.columns,s.rows);
-}
 
-function renderDetail(){
-  const s=DATA.sheets.detalny; const c=document.getElementById("content");
-  const q=detail.q.trim().toLowerCase();
-  const all=q?s.rows.filter(r=>r.some(v=>String(v).toLowerCase().includes(q))):s.rows;
-  const pages=Math.max(1,Math.ceil(all.length/PAGE));
-  if(detail.page>=pages) detail.page=0;
-  const slice=all.slice(detail.page*PAGE,detail.page*PAGE+PAGE);
-  let pager=`<button class="pg" data-pg="prev" ${detail.page===0?"disabled":""}>‹</button>`;
-  const win=[];
-  for(let p=0;p<pages;p++){ if(p<3||p>=pages-1||Math.abs(p-detail.page)<=1) win.push(p); }
-  let last=-1;
-  win.forEach(p=>{ if(p-last>1) pager+=`<span>…</span>`; pager+=`<button class="pg ${p===detail.page?"active":""}" data-pg="${p}">${p+1}</button>`; last=p; });
-  pager+=`<button class="pg" data-pg="next" ${detail.page>=pages-1?"disabled":""}>›</button>`;
-  c.innerHTML=`
-    <div class="controls">
-      <div class="search"><i class="ti ti-search"></i><input id="q" placeholder="Поиск по организации, ИНН, сектору…" value="${esc(detail.q)}"/></div>
-      <span class="count">${all.length} из ${s.rows.length} организаций</span>
-    </div>
-    ${tableHTML(s.columns,slice)}
-    <div class="pager">${pager}</div>`;
-  const qi=document.getElementById("q");
-  qi.oninput=()=>{ detail.q=qi.value; detail.page=0; const pos=qi.selectionStart; renderDetail(); const n=document.getElementById("q"); n.focus(); n.setSelectionRange(pos,pos); };
-  c.querySelectorAll("[data-pg]").forEach(b=>b.onclick=()=>{
-    const v=b.getAttribute("data-pg");
-    if(v==="prev")detail.page--; else if(v==="next")detail.page++; else detail.page=+v;
-    renderDetail();
-  });
-}
+  if(id==="top10_react"){
+    c.innerHTML=(s.caption?`<div class="cap">${esc(s.caption)}</div>`:"")+
+      `<div class="chartbox"><canvas id="ch_tr"></canvas></div><div id="tb_tr"></div>`;
+    lineMulti("ch_tr",s.columns,s.rows);
+    tableModule(document.getElementById("tb_tr"),"top10_react",s.columns,s.rows);
+    return;
+  }
 
+  if(id==="all_react"){
+    const ni=nameIdx(s.columns);
+    const opts=s.rows.map((r,i)=>`<option value="${i}">${esc(shortName(r[ni]))}</option>`).join("");
+    c.innerHTML=(s.caption?`<div class="cap">${esc(s.caption)}</div>`:"")+
+      `<div class="controls"><select id="orgsel"><option value="-1">Все организации (суммарно)</option>${opts}</select>
+       <button class="hbtn" id="orgreset"><i class="ti ti-refresh"></i> Сбросить</button></div>
+       <div class="chartbox"><canvas id="ch_ar"></canvas></div><div id="tb_ar"></div>`;
+    const draw=(idx)=>{ clearCharts(); lineAgg("ch_ar",s.columns,s.rows,idx); };
+    draw(-1);
+    const sel=document.getElementById("orgsel");
+    sel.onchange=()=>draw(+sel.value);
+    document.getElementById("orgreset").onclick=()=>{ sel.value="-1"; draw(-1); };
+    tableModule(document.getElementById("tb_ar"),"all_react",s.columns,s.rows);
+    return;
+  }
+
+  // обычная таблица (detalny, irregular, прочее)
+  c.innerHTML=(s.caption?`<div class="cap">${esc(s.caption)}</div>`:"")+`<div id="tb_${id}"></div>`;
+  tableModule(document.getElementById(`tb_${id}`),id,s.columns,s.rows);
+}
 function route(){
   const id=decodeURIComponent(location.hash.replace(/^#/,""))||DATA.order[0];
   renderTabs(id); renderContent(id);
 }
-
 async function showReport(user){
   try{ await ensureData(); }
   catch(e){ root.innerHTML=`<div class="center"><div class="login"><h1>Ошибка</h1><p class="sub">${esc(e.message||e)}</p></div></div>`; return; }
-  root.innerHTML=shell("",user);
+  root.innerHTML=shell(user);
   document.getElementById("back").onclick=()=>history.back();
   document.getElementById("home").onclick=()=>{ location.hash=DATA.order[0]; };
   document.getElementById("logout").onclick=async()=>{ await signOut(auth); location.hash=""; };
   window.addEventListener("hashchange",route);
   route();
 }
-
-/* ---------- старт: возврат по ссылке из письма ---------- */
 (async()=>{
   if(isSignInWithEmailLink(auth,location.href)){
     let email=localStorage.getItem("reportSignInEmail");
     if(!email) email=window.prompt("Подтвердите почту, на которую пришла ссылка:");
-    try{
-      await signInWithEmailLink(auth,email,location.href);
-      localStorage.removeItem("reportSignInEmail");
-      history.replaceState(null,"",location.origin+location.pathname); // убрать длинную ссылку из адреса
-    }catch(e){ loginScreen(); return; }
+    try{ await signInWithEmailLink(auth,email,location.href); localStorage.removeItem("reportSignInEmail");
+      history.replaceState(null,"",location.origin+location.pathname); }
+    catch(e){ loginScreen(); return; }
   }
   onAuthStateChanged(auth,user=>{
     if(user && ALLOWED.test(user.email||"")) showReport(user.email);
