@@ -16,7 +16,7 @@
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif;font-size:14px}
-#app{max-width:1400px;margin:0 auto;padding:22px 20px 60px}
+#app{max-width:100%;margin:0 auto;padding:18px 22px 60px}
 
 /* ---- вход ---- */
 .center{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
@@ -59,10 +59,10 @@ h2.title{font-family:'Unbounded',sans-serif;font-weight:500;font-size:22px;color
 .blocktitle{font-family:'Unbounded',sans-serif;font-weight:500;font-size:15px;margin:22px 0 10px}
 .tablewrap{border:1px solid var(--border);border-radius:10px;overflow:auto;max-width:100%}
 table{border-collapse:collapse;width:100%;font-size:12.5px}
-thead th{position:sticky;top:0;background:var(--pink);color:#fff;font-weight:500;text-align:left;padding:9px 12px;white-space:nowrap}
+thead th{position:sticky;top:0;background:var(--pink);color:#fff;font-weight:500;text-align:left;padding:8px 11px;white-space:nowrap;border:1px solid rgba(255,255,255,0.20)}
 thead th.num{text-align:right}
-tbody td{padding:8px 12px;border-top:1px solid rgba(255,255,255,0.06);white-space:nowrap}
-tbody td.num{text-align:right;font-variant-numeric:tabular-nums}
+tbody td{padding:7px 11px;border:1px solid rgba(255,255,255,0.13);white-space:normal;vertical-align:top}
+tbody td.num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
 tbody tr:hover{background:rgba(255,255,255,0.03)}
 tbody tr.total td{font-weight:600;background:rgba(255,255,255,0.04)}
 
