@@ -1,1 +1,267 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Текущий отчёт — O!Bank</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Inter:wght@400;500&display=swap" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css" rel="stylesheet" />
+<style>
+:root{
+  --pink:#E8005A; --pink-light:#ff4d92; --bg:#060608; --panel:#0b0b0e; --surface:#15151a;
+  --text:#f2f2f2; --muted:#8a8a92; --border:rgba(255,255,255,0.10); --success:#34d399;
+  --danger:#f87171; --radius:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif;font-size:14px}
+#app{max-width:1400px;margin:0 auto;padding:22px 20px 60px}
 
+/* ---- вход ---- */
+.center{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.login{width:100%;max-width:420px;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:32px 28px}
+.brand{display:flex;align-items:center;gap:9px;margin-bottom:22px}
+.brand .dot{width:11px;height:11px;border-radius:50%;background:var(--pink)}
+.brand span{font-size:12px;color:var(--muted)}
+.lockic{width:50px;height:50px;border-radius:13px;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:23px;color:var(--pink-light);margin-bottom:16px}
+h1{font-family:'Unbounded',sans-serif;font-weight:700;font-size:21px;line-height:1.25;margin-bottom:8px}
+.sub{color:var(--muted);font-size:13.5px;line-height:1.5;margin-bottom:22px}
+label{display:block;font-size:12px;color:var(--muted);margin-bottom:7px}
+input[type=email]{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:13px 14px;color:var(--text);font:inherit;font-size:15px}
+input[type=email]:focus{outline:none;border-color:var(--pink)}
+.btn{width:100%;margin-top:15px;border:none;background:var(--pink);color:#fff;border-radius:10px;padding:14px;font:inherit;font-size:15px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn:hover{background:var(--pink-light)}
+.btn:disabled{opacity:.55;cursor:default}
+.note{margin-top:16px;font-size:12px;color:var(--muted);line-height:1.5}
+.msg{margin-top:13px;font-size:13px;border-radius:10px;padding:11px 13px;display:none;line-height:1.45}
+.msg.show{display:block}
+.msg.err{background:rgba(248,113,113,.10);color:var(--danger);border:1px solid rgba(248,113,113,.25)}
+.msg.ok{background:rgba(52,211,153,.10);color:var(--success);border:1px solid rgba(52,211,153,.25)}
+
+/* ---- шапка отчёта ---- */
+.topbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+.hbtn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);background:transparent;color:var(--text);border-radius:9px;padding:8px 13px;font:inherit;font-size:13px;cursor:pointer;transition:all .15s}
+.hbtn:hover{border-color:var(--pink);color:var(--pink-light)}
+.spacer{flex:1}
+.who{font-size:12px;color:var(--muted)}
+h2.title{font-family:'Unbounded',sans-serif;font-weight:500;font-size:22px;color:var(--pink);margin:14px 0 4px}
+.updated{font-size:12px;color:var(--muted);margin-bottom:16px}
+
+/* ---- вкладки ---- */
+.tabs{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:18px}
+.tab{font-size:12.5px;padding:8px 13px;border-radius:9px;background:var(--surface);border:1px solid var(--border);color:#c7c7cc;cursor:pointer;white-space:nowrap;transition:all .15s}
+.tab:hover{color:var(--text);border-color:var(--pink)}
+.tab.active{background:var(--pink);color:#fff;border-color:var(--pink)}
+
+/* ---- таблица ---- */
+.cap{font-size:12.5px;color:var(--muted);margin-bottom:12px;line-height:1.5}
+.blocktitle{font-family:'Unbounded',sans-serif;font-weight:500;font-size:15px;margin:22px 0 10px}
+.tablewrap{border:1px solid var(--border);border-radius:10px;overflow:auto;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:12.5px}
+thead th{position:sticky;top:0;background:var(--pink);color:#fff;font-weight:500;text-align:left;padding:9px 12px;white-space:nowrap}
+thead th.num{text-align:right}
+tbody td{padding:8px 12px;border-top:1px solid rgba(255,255,255,0.06);white-space:nowrap}
+tbody td.num{text-align:right;font-variant-numeric:tabular-nums}
+tbody tr:hover{background:rgba(255,255,255,0.03)}
+tbody tr.total td{font-weight:600;background:rgba(255,255,255,0.04)}
+
+/* ---- поиск + постранично ---- */
+.controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.search{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:9px 12px;min-width:280px}
+.search i{color:var(--muted);font-size:15px}
+.search input{background:none;border:none;color:var(--text);font:inherit;font-size:13.5px;width:100%;outline:none}
+.count{font-size:12px;color:var(--muted)}
+.pager{display:flex;align-items:center;gap:6px;margin-top:14px;font-size:12.5px;color:var(--muted);flex-wrap:wrap}
+.pg{padding:5px 10px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;font:inherit;font-size:12.5px}
+.pg:hover{border-color:var(--pink)}
+.pg.active{background:var(--pink);color:#fff;border-color:var(--pink)}
+.pg:disabled{opacity:.4;cursor:default}
+.loading{color:var(--muted);padding:40px 0;text-align:center}
+</style>
+</head>
+<body>
+
+<div id="root">
+  <div class="center"><div class="loading">Загрузка…</div></div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getAuth, isSignInWithEmailLink, sendSignInLinkToEmail, signInWithEmailLink, signOut, onAuthStateChanged }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+const cfg={apiKey:"AIzaSyC2mbQOfdIA0ncUMhe8oS9IEr_ixT9SeAI",authDomain:"salary-roadmap.firebaseapp.com",projectId:"salary-roadmap",storageBucket:"salary-roadmap.firebasestorage.app",messagingSenderId:"879375192363",appId:"1:879375192363:web:eb719f2b49a516fb21b56e"};
+const app=initializeApp(cfg); const db=getFirestore(app); const auth=getAuth(app);
+
+const ALLOWED=/@(gts\.kg|obank\.kg)$/i;
+const PAGE=25;
+const root=document.getElementById("root");
+const esc=(s)=>String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+const isNum=(v)=>typeof v==="number";
+const fmtNum=(v)=>Number.isInteger(v)?v.toLocaleString("ru-RU"):v.toLocaleString("ru-RU",{maximumFractionDigits:2});
+const fmt=(v)=>isNum(v)?fmtNum(v):esc(v);
+
+let DATA=null;
+const detail={q:"",page:0};
+
+/* ---------- вход ---------- */
+function loginScreen(state){
+  const sent=state&&state.sent;
+  root.innerHTML=`
+  <div class="center"><div class="login">
+    <div class="brand"><span class="dot"></span><span>O!Bank · Операционный блок</span></div>
+    ${sent?`
+      <div class="lockic" style="color:var(--success);background:rgba(52,211,153,.1);border-color:rgba(52,211,153,.25)"><i class="ti ti-mail-check"></i></div>
+      <h1>Проверьте почту</h1>
+      <p class="sub">Ссылка для входа отправлена на <b>${esc(sent)}</b>. Откройте письмо и перейдите по ссылке — вернётесь сюда уже в отчёт.</p>
+      <p class="note">Не пришло? Проверьте «Спам» или <a href="#" id="again" style="color:var(--pink-light)">введите почту заново</a>.</p>
+    `:`
+      <div class="lockic"><i class="ti ti-lock"></i></div>
+      <h1>Текущий отчёт</h1>
+      <p class="sub">Доступ для сотрудников O!Bank. Введите рабочую почту — пришлём ссылку для входа.</p>
+      <label for="email">Рабочая почта</label>
+      <input type="email" id="email" placeholder="name@gts.kg" autocomplete="email" />
+      <div class="msg err" id="err"></div>
+      <button class="btn" id="send"><i class="ti ti-mail"></i> Получить ссылку для входа</button>
+      <p class="note">Пароль не нужен. Ссылка действует ограниченное время.</p>
+    `}
+  </div></div>`;
+  if(sent){ document.getElementById("again").onclick=(e)=>{e.preventDefault();loginScreen();}; return; }
+  const emailEl=document.getElementById("email"), errEl=document.getElementById("err"), btn=document.getElementById("send");
+  const showErr=(m)=>{errEl.textContent=m;errEl.classList.add("show");};
+  emailEl.addEventListener("keydown",e=>{if(e.key==="Enter")btn.click();});
+  btn.onclick=async()=>{
+    errEl.classList.remove("show");
+    const email=emailEl.value.trim();
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showErr("Введите корректный адрес почты.");
+    if(!ALLOWED.test(email)) return showErr("Доступ только для почты @gts.kg или @obank.kg.");
+    btn.disabled=true; btn.innerHTML='<i class="ti ti-loader-2"></i> Отправляем…';
+    try{
+      const url=location.origin+location.pathname;
+      await sendSignInLinkToEmail(auth,email,{url,handleCodeInApp:true});
+      localStorage.setItem("reportSignInEmail",email);
+      loginScreen({sent:email});
+    }catch(e){ showErr("Не удалось отправить ссылку: "+(e.message||e)); btn.disabled=false; btn.innerHTML='<i class="ti ti-mail"></i> Получить ссылку для входа'; }
+  };
+}
+
+/* ---------- отчёт ---------- */
+async function ensureData(){
+  if(DATA) return;
+  const snap=await getDoc(doc(db,"report_current","data"));
+  if(!snap.exists()) throw new Error("Данные отчёта не найдены.");
+  DATA=JSON.parse(snap.data().payload);
+}
+
+function shell(inner,user){
+  return `<div id="app">
+    <div class="topbar">
+      <button class="hbtn" id="back"><i class="ti ti-arrow-left"></i> Назад</button>
+      <button class="hbtn" id="home"><i class="ti ti-home"></i> Домой</button>
+      <span class="spacer"></span>
+      <span class="who">${esc(user)}</span>
+      <button class="hbtn" id="logout"><i class="ti ti-logout"></i> Выйти</button>
+    </div>
+    <h2 class="title">Текущий отчёт</h2>
+    <div class="updated">Данные за ${esc(DATA.period||"")} · обновлено ${esc(DATA.updated||"")}</div>
+    <div class="tabs" id="tabs"></div>
+    <div id="content"></div>
+  </div>`;
+}
+
+function renderTabs(activeId){
+  document.getElementById("tabs").innerHTML=DATA.order.map(id=>{
+    const s=DATA.sheets[id]; if(!s) return "";
+    return `<span class="tab ${id===activeId?"active":""}" data-tab="${id}">${esc(s.name)}</span>`;
+  }).join("");
+}
+
+function tableHTML(columns,rows){
+  const numcol=columns.map((c,i)=>rows.some(r=>isNum(r[i])));
+  const head=columns.map((c,i)=>`<th class="${numcol[i]?"num":""}">${esc(c)}</th>`).join("");
+  const body=rows.map(r=>{
+    const isTotal=typeof r[0]==="string"&&/^ИТОГО/i.test(r[0]);
+    const tds=r.map((v,i)=>`<td class="${numcol[i]?"num":""}">${fmt(v)}</td>`).join("");
+    return `<tr class="${isTotal?"total":""}">${tds}</tr>`;
+  }).join("");
+  return `<div class="tablewrap"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+}
+
+function renderContent(id){
+  const s=DATA.sheets[id]; const c=document.getElementById("content");
+  if(!s){ c.innerHTML="<div class='loading'>Лист не найден</div>"; return; }
+  if(s.type==="blocks"){
+    c.innerHTML=s.blocks.map(b=>`<div class="blocktitle">${esc(b.title)}</div>${tableHTML(b.columns,b.rows)}`).join("");
+    return;
+  }
+  if(id==="detalny"){ renderDetail(); return; }
+  c.innerHTML=(s.caption?`<div class="cap">${esc(s.caption)}</div>`:"")+tableHTML(s.columns,s.rows);
+}
+
+function renderDetail(){
+  const s=DATA.sheets.detalny; const c=document.getElementById("content");
+  const q=detail.q.trim().toLowerCase();
+  const all=q?s.rows.filter(r=>r.some(v=>String(v).toLowerCase().includes(q))):s.rows;
+  const pages=Math.max(1,Math.ceil(all.length/PAGE));
+  if(detail.page>=pages) detail.page=0;
+  const slice=all.slice(detail.page*PAGE,detail.page*PAGE+PAGE);
+  let pager=`<button class="pg" data-pg="prev" ${detail.page===0?"disabled":""}>‹</button>`;
+  const win=[];
+  for(let p=0;p<pages;p++){ if(p<3||p>=pages-1||Math.abs(p-detail.page)<=1) win.push(p); }
+  let last=-1;
+  win.forEach(p=>{ if(p-last>1) pager+=`<span>…</span>`; pager+=`<button class="pg ${p===detail.page?"active":""}" data-pg="${p}">${p+1}</button>`; last=p; });
+  pager+=`<button class="pg" data-pg="next" ${detail.page>=pages-1?"disabled":""}>›</button>`;
+  c.innerHTML=`
+    <div class="controls">
+      <div class="search"><i class="ti ti-search"></i><input id="q" placeholder="Поиск по организации, ИНН, сектору…" value="${esc(detail.q)}"/></div>
+      <span class="count">${all.length} из ${s.rows.length} организаций</span>
+    </div>
+    ${tableHTML(s.columns,slice)}
+    <div class="pager">${pager}</div>`;
+  const qi=document.getElementById("q");
+  qi.oninput=()=>{ detail.q=qi.value; detail.page=0; const pos=qi.selectionStart; renderDetail(); const n=document.getElementById("q"); n.focus(); n.setSelectionRange(pos,pos); };
+  c.querySelectorAll("[data-pg]").forEach(b=>b.onclick=()=>{
+    const v=b.getAttribute("data-pg");
+    if(v==="prev")detail.page--; else if(v==="next")detail.page++; else detail.page=+v;
+    renderDetail();
+  });
+}
+
+function route(){
+  const id=decodeURIComponent(location.hash.replace(/^#/,""))||DATA.order[0];
+  renderTabs(id); renderContent(id);
+}
+
+async function showReport(user){
+  try{ await ensureData(); }
+  catch(e){ root.innerHTML=`<div class="center"><div class="login"><h1>Ошибка</h1><p class="sub">${esc(e.message||e)}</p></div></div>`; return; }
+  root.innerHTML=shell("",user);
+  document.getElementById("back").onclick=()=>history.back();
+  document.getElementById("home").onclick=()=>{ location.hash=DATA.order[0]; };
+  document.getElementById("logout").onclick=async()=>{ await signOut(auth); location.hash=""; };
+  window.addEventListener("hashchange",route);
+  route();
+}
+
+/* ---------- старт: возврат по ссылке из письма ---------- */
+(async()=>{
+  if(isSignInWithEmailLink(auth,location.href)){
+    let email=localStorage.getItem("reportSignInEmail");
+    if(!email) email=window.prompt("Подтвердите почту, на которую пришла ссылка:");
+    try{
+      await signInWithEmailLink(auth,email,location.href);
+      localStorage.removeItem("reportSignInEmail");
+      history.replaceState(null,"",location.origin+location.pathname); // убрать длинную ссылку из адреса
+    }catch(e){ loginScreen(); return; }
+  }
+  onAuthStateChanged(auth,user=>{
+    if(user && ALLOWED.test(user.email||"")) showReport(user.email);
+    else if(user){ signOut(auth); loginScreen(); }
+    else loginScreen();
+  });
+})();
+</script>
+</body>
+</html>
