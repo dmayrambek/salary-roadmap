@@ -99,6 +99,7 @@ const isNum=(v)=>typeof v==="number";
 const toNum=(v)=>typeof v==="number"?v:(typeof v==="string"&&/^-?\d+(\.\d+)?$/.test(v)?parseFloat(v):0);
 const fmtNum=(v)=>Number.isInteger(v)?v.toLocaleString("ru-RU"):v.toLocaleString("ru-RU",{maximumFractionDigits:2});
 const fmt=(v)=>isNum(v)?fmtNum(v):esc(v);
+const shareFmt=(v)=>v<=0?"0":(v<0.01?"<0,01":(Math.round(v*100)/100).toLocaleString("ru-RU",{maximumFractionDigits:2}));
 const shortName=(v)=>String(v).replace(/^[\d.]+\s*-\s*/,"").trim();
 
 let DATA=null; const state={}; let charts=[];
@@ -177,7 +178,10 @@ function tableHTML(columns,rows){
   const head=columns.map((c,i)=>`<th class="${numcol[i]?"num":""}">${esc(c)}</th>`).join("");
   const body=rows.map(r=>{
     const isTotal=typeof r[0]==="string"&&/^(ИТОГО|Общий итог)/i.test(r[0]);
-    const tds=r.map((v,i)=>`<td class="${numcol[i]?"num":""}">${fmt(v)}</td>`).join("");
+    const tds=r.map((v,i)=>{
+      const disp=(columns[i]==="Доля, %"&&isNum(v))?shareFmt(v):fmt(v);
+      return `<td class="${numcol[i]?"num":""}">${disp}</td>`;
+    }).join("");
     return `<tr class="${isTotal?"total":""}">${tds}</tr>`;
   }).join("");
   return `<div class="tablewrap"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
@@ -245,6 +249,16 @@ function blockTotal(block){
   const r=block.rows.find(rr=>/^(ИТОГО|Общий итог)/i.test(String(rr[0])));
   return r?toNum(r[ci]):block.rows.reduce((a,rr)=>a+toNum(rr[ci]),0);
 }
+function recomputeShare(block){
+  const di=block.columns.indexOf("Доля, %"), vi=block.columns.indexOf("ФОТ за 6 месяцев");
+  if(di<0||vi<0) return;
+  const tr=block.rows.find(r=>/^(ИТОГО|Общий итог)/i.test(String(r[0])));
+  const total=tr?toNum(tr[vi]):block.rows.reduce((a,r)=>a+toNum(r[vi]),0);
+  block.rows.forEach(r=>{
+    if(/^(ИТОГО|Общий итог)/i.test(String(r[0]))){ r[di]=100; return; }
+    r[di]= total?toNum(r[vi])/total*100:0;
+  });
+}
 /* контент вкладки */
 function renderContent(id){
   clearCharts();
@@ -268,6 +282,7 @@ function renderContent(id){
     }
     c.innerHTML=h;
     s.blocks.forEach((b,bi)=>{
+      if(pieSheet) recomputeShare(b);
       tableModule(document.getElementById(`tb_${id}_${bi}`),`${id}_${bi}`,b.columns,b.rows);
       if(id==="top10_fot") barBlock(`ch_${id}_${bi}`,b);
       else if(pieSheet) blockPie(`ch_${id}_${bi}`,b, b.title.includes("виду деятельности")?8:null);
