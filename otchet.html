@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Inter:wght@400;500&display=swap" rel="stylesheet" />
 <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 <style>
 :root{
   --pink:#E8005A; --pink-light:#ff4d92; --bg:#060608; --panel:#0b0b0e; --surface:#15151a;
@@ -63,13 +64,13 @@ tbody tr.total td{font-weight:600;background:rgba(255,255,255,0.04)}
 .search i{color:var(--muted);font-size:15px}
 .search input{background:none;border:none;color:var(--text);font:inherit;font-size:13.5px;width:100%;outline:none}
 .count{font-size:12px;color:var(--muted)}
-select{background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:9px;padding:9px 12px;font:inherit;font-size:13px;max-width:360px}
 .pager{display:flex;align-items:center;gap:6px;margin-top:14px;font-size:12.5px;color:var(--muted);flex-wrap:wrap}
 .pg{padding:5px 10px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;font:inherit;font-size:12.5px}
 .pg:hover{border-color:var(--pink)}
 .pg.active{background:var(--pink);color:#fff;border-color:var(--pink)}
 .pg:disabled{opacity:.4;cursor:default}
 .loading{color:var(--muted);padding:40px 0;text-align:center}
+.piesums{font-size:13px;color:var(--text);margin:4px 0 20px}
 </style>
 </head>
 <body>
@@ -81,14 +82,14 @@ import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10
 import { getAuth, isSignInWithEmailLink, sendSignInLinkToEmail, signInWithEmailLink, signOut, onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
+if(window.ChartDataLabels) Chart.register(window.ChartDataLabels);
+
 const cfg={apiKey:"AIzaSyC2mbQOfdIA0ncUMhe8oS9IEr_ixT9SeAI",authDomain:"salary-roadmap.firebaseapp.com",projectId:"salary-roadmap",storageBucket:"salary-roadmap.firebasestorage.app",messagingSenderId:"879375192363",appId:"1:879375192363:web:eb719f2b49a516fb21b56e"};
 const app=initializeApp(cfg); const db=getFirestore(app); const auth=getAuth(app);
 
 const ALLOWED=/@(gts\.kg|obank\.kg)$/i;
 const PAGE=25;
-const MONTHS=["Январь","Февраль","Март","Апрель","Май","Июнь"];
-const MSHORT=["Янв","Фев","Мар","Апр","Май","Июн"];
-const LINE_COLORS=["#E8005A","#3b7fd4","#34d399","#f5a623","#9b59b6","#ff7f50","#1abc9c","#e84393","#00b894","#a29bfe"];
+const PIE_COLORS=["#E8005A","#3b7fd4","#34d399","#f5a623","#9b59b6","#ff7f50","#1abc9c","#e84393","#00b894","#a29bfe","#fd79a8","#74b9ff","#e17055"];
 const root=document.getElementById("root");
 const esc=(s)=>String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
 const isNum=(v)=>typeof v==="number";
@@ -99,8 +100,6 @@ const shortName=(v)=>String(v).replace(/^[\d.]+\s*-\s*/,"").trim();
 
 let DATA=null; const state={}; let charts=[];
 function clearCharts(){ charts.forEach(c=>{try{c.destroy()}catch(e){}}); charts=[]; }
-function monthIdx(columns){ return MONTHS.map(m=>columns.findIndex(c=>String(c).includes(m))); }
-function nameIdx(columns){ const i=columns.findIndex(c=>/Организаци|Наименование/i.test(c)); return i>=0?i:0; }
 
 /* ---------- вход ---------- */
 function loginScreen(state2){
@@ -186,7 +185,6 @@ function pagerHTML(page,pages){
   let last=-1; win.forEach(p=>{ if(p-last>1) h+=`<span>…</span>`; h+=`<button class="pg ${p===page?"active":""}" data-pg="${p}">${p+1}</button>`; last=p; });
   h+=`<button class="pg" data-pg="next" ${page>=pages-1?"disabled":""}>›</button>`; return h;
 }
-/* таблица с поиском/страницами (в свой контейнер) */
 function tableModule(el,key,columns,rows){
   const st=state[key]||(state[key]={q:"",page:0}); const big=rows.length>30;
   function draw(){
@@ -207,39 +205,37 @@ function tableModule(el,key,columns,rows){
 }
 /* графики */
 function barBlock(canvasId,block){
-  const ci=block.columns.length-1; // ФОТ за 6 месяцев — последняя колонка
+  const ci=block.columns.length-1;
   const rows=block.rows.filter(r=>!/^(ИТОГО|Общий итог)/i.test(String(r[0])));
-  const labels=rows.map(r=>shortName(r[0]));
-  const values=rows.map(r=>toNum(r[ci]));
+  const labels=rows.map(r=>shortName(r[0])); const values=rows.map(r=>toNum(r[ci]));
   charts.push(new Chart(document.getElementById(canvasId),{type:"bar",
     data:{labels,datasets:[{data:values,backgroundColor:"#E8005A",borderRadius:3}]},
-    options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},
-      tooltip:{callbacks:{label:(c)=>c.parsed.x.toLocaleString("ru-RU")}}},
+    options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},datalabels:{display:false},
+        tooltip:{callbacks:{label:(c)=>c.parsed.x.toLocaleString("ru-RU")}}},
       scales:{x:{ticks:{color:"#8a8a92",callback:v=>v.toLocaleString("ru-RU")},grid:{color:"rgba(255,255,255,.06)"}},
               y:{ticks:{color:"#c7c7cc",font:{size:11}},grid:{display:false}}}}}));
 }
-function lineMulti(canvasId,columns,rows){
-  const mi=monthIdx(columns), ni=nameIdx(columns);
-  const ds=rows.map((r,i)=>({label:shortName(r[ni]),data:mi.map(ix=>ix>=0?toNum(r[ix]):null),
-    borderColor:LINE_COLORS[i%LINE_COLORS.length],backgroundColor:"transparent",tension:.25,pointRadius:2,borderWidth:2}));
-  charts.push(new Chart(document.getElementById(canvasId),{type:"line",data:{labels:MSHORT,datasets:ds},
-    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"nearest"},
-      plugins:{legend:{labels:{color:"#c7c7cc",boxWidth:12,font:{size:11}}},
-        tooltip:{callbacks:{label:(c)=>c.dataset.label+": "+(c.parsed.y||0).toLocaleString("ru-RU")}}},
-      scales:{x:{ticks:{color:"#8a8a92"},grid:{color:"rgba(255,255,255,.06)"}},
-              y:{ticks:{color:"#8a8a92",callback:v=>v.toLocaleString("ru-RU")},grid:{color:"rgba(255,255,255,.06)"}}}}}));
+function pieChart(canvasId,labels,values,topN){
+  let L=labels.slice(), V=values.slice();
+  if(topN && L.length>topN){
+    const idx=V.map((v,i)=>[v,i]).sort((a,b)=>b[0]-a[0]);
+    const keep=idx.slice(0,topN).map(x=>x[1]); const rest=idx.slice(topN).reduce((a,x)=>a+x[0],0);
+    const nl=[],nv=[]; keep.forEach(i=>{nl.push(L[i]);nv.push(V[i]);}); nl.push("Прочие"); nv.push(rest); L=nl; V=nv;
+  }
+  const total=V.reduce((a,b)=>a+b,0)||1;
+  charts.push(new Chart(document.getElementById(canvasId),{type:"pie",
+    data:{labels:L,datasets:[{data:V,backgroundColor:PIE_COLORS,borderColor:"#0b0b0e",borderWidth:2}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:"right",labels:{color:"#c7c7cc",font:{size:11},boxWidth:12}},
+        tooltip:{callbacks:{label:(c)=>c.label+": "+c.parsed.toLocaleString("ru-RU")+" ("+(c.parsed/total*100).toFixed(1)+"%)"}},
+        datalabels:{color:"#fff",font:{size:11,weight:500},formatter:(v)=>{const p=v/total*100; return p>=4?p.toFixed(1)+"%":"";}}}}}));
 }
-function lineAgg(canvasId,columns,rows,orgIdx){
-  const mi=monthIdx(columns), ni=nameIdx(columns);
-  let label,data;
-  if(orgIdx>=0){ label=shortName(rows[orgIdx][ni]); data=mi.map(ix=>ix>=0?toNum(rows[orgIdx][ix]):0); }
-  else{ label="Все организации (суммарно)"; data=mi.map(ix=>ix>=0?rows.reduce((a,r)=>a+toNum(r[ix]),0):0); }
-  charts.push(new Chart(document.getElementById(canvasId),{type:"line",
-    data:{labels:MSHORT,datasets:[{label,data,borderColor:"#E8005A",backgroundColor:"rgba(232,0,90,.08)",fill:true,tension:.25,pointRadius:4,borderWidth:3}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:"#c7c7cc"}},
-      tooltip:{callbacks:{label:(c)=>(c.parsed.y||0).toLocaleString("ru-RU")}}},
-      scales:{x:{ticks:{color:"#8a8a92"},grid:{color:"rgba(255,255,255,.06)"}},
-              y:{ticks:{color:"#8a8a92",callback:v=>v.toLocaleString("ru-RU")},grid:{color:"rgba(255,255,255,.06)"}}}}}));
+function blockPie(canvasId,block,topN){
+  const rows=block.rows.filter(r=>!/^(ИТОГО|Общий итог)/i.test(String(r[0])));
+  const li=block.columns.indexOf("Наименование филиала")>=0?block.columns.indexOf("Наименование филиала"):0;
+  const vi=block.columns.indexOf("ФОТ за 6 месяцев");
+  pieChart(canvasId,rows.map(r=>String(r[li])),rows.map(r=>toNum(r[vi])),topN);
 }
 /* контент вкладки */
 function renderContent(id){
@@ -247,43 +243,36 @@ function renderContent(id){
   const s=DATA.sheets[id]; const c=document.getElementById("content");
   if(!s){ c.innerHTML="<div class='loading'>Лист не найден</div>"; return; }
 
+  if(s.type==="placeholder"){ c.innerHTML=`<div class="loading">${esc(s.note||"Данные будут добавлены позже.")}</div>`; return; }
+
   if(s.type==="blocks"){
+    const pieSheet=(id==="svod_fil"||id==="svod_otr");
     let h=""; s.blocks.forEach((b,bi)=>{
       h+=`<div class="blocktitle">${esc(b.title)}</div>`;
-      if(id==="top10_fot") h+=`<div class="chartbox"><canvas id="ch_${id}_${bi}"></canvas></div>`;
+      if(id==="top10_fot"||pieSheet) h+=`<div class="chartbox"><canvas id="ch_${id}_${bi}"></canvas></div>`;
       h+=`<div id="tb_${id}_${bi}"></div>`;
     });
+    if(id==="top10_fot" && s.pie){
+      h+=`<div class="blocktitle">Группа компаний и другие компании</div>
+          <div class="chartbox"><canvas id="ch_bigpie"></canvas></div>
+          <div class="piesums" id="pieSums"></div>`;
+    }
     c.innerHTML=h;
-    s.blocks.forEach((b,bi)=>{ tableModule(document.getElementById(`tb_${id}_${bi}`),`${id}_${bi}`,b.columns,b.rows);
-      if(id==="top10_fot") barBlock(`ch_${id}_${bi}`,b); });
+    s.blocks.forEach((b,bi)=>{
+      tableModule(document.getElementById(`tb_${id}_${bi}`),`${id}_${bi}`,b.columns,b.rows);
+      if(id==="top10_fot") barBlock(`ch_${id}_${bi}`,b);
+      else if(pieSheet) blockPie(`ch_${id}_${bi}`,b, b.title.includes("виду деятельности")?8:null);
+    });
+    if(id==="top10_fot" && s.pie){
+      pieChart("ch_bigpie",s.pie.labels,s.pie.values,null);
+      const tot=s.pie.values.reduce((a,b)=>a+b,0)||1;
+      document.getElementById("pieSums").innerHTML=s.pie.labels.map((l,i)=>
+        `<b>${esc(l)}:</b> ${fmtNum(s.pie.values[i])} (${(s.pie.values[i]/tot*100).toFixed(1)}%)`).join(" &nbsp;·&nbsp; ");
+    }
     return;
   }
 
-  if(id==="top10_react"){
-    c.innerHTML=(s.caption?`<div class="cap">${esc(s.caption)}</div>`:"")+
-      `<div class="chartbox"><canvas id="ch_tr"></canvas></div><div id="tb_tr"></div>`;
-    lineMulti("ch_tr",s.columns,s.rows);
-    tableModule(document.getElementById("tb_tr"),"top10_react",s.columns,s.rows);
-    return;
-  }
-
-  if(id==="all_react"){
-    const ni=nameIdx(s.columns);
-    const opts=s.rows.map((r,i)=>`<option value="${i}">${esc(shortName(r[ni]))}</option>`).join("");
-    c.innerHTML=(s.caption?`<div class="cap">${esc(s.caption)}</div>`:"")+
-      `<div class="controls"><select id="orgsel"><option value="-1">Все организации (суммарно)</option>${opts}</select>
-       <button class="hbtn" id="orgreset"><i class="ti ti-refresh"></i> Сбросить</button></div>
-       <div class="chartbox"><canvas id="ch_ar"></canvas></div><div id="tb_ar"></div>`;
-    const draw=(idx)=>{ clearCharts(); lineAgg("ch_ar",s.columns,s.rows,idx); };
-    draw(-1);
-    const sel=document.getElementById("orgsel");
-    sel.onchange=()=>draw(+sel.value);
-    document.getElementById("orgreset").onclick=()=>{ sel.value="-1"; draw(-1); };
-    tableModule(document.getElementById("tb_ar"),"all_react",s.columns,s.rows);
-    return;
-  }
-
-  // обычная таблица (detalny, irregular, прочее)
+  // обычная таблица (detalny, all_react, irregular)
   c.innerHTML=(s.caption?`<div class="cap">${esc(s.caption)}</div>`:"")+`<div id="tb_${id}"></div>`;
   tableModule(document.getElementById(`tb_${id}`),id,s.columns,s.rows);
 }
