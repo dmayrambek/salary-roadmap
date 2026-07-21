@@ -51,6 +51,9 @@ h2.title{font-family:'Unbounded',sans-serif;font-weight:500;font-size:22px;color
 .cap{font-size:12.5px;color:var(--muted);margin-bottom:12px;line-height:1.5}
 .blocktitle{font-family:'Unbounded',sans-serif;font-weight:500;font-size:15px;margin:22px 0 10px}
 .chartbox{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin:6px 0 16px;height:340px;position:relative}
+.blockrow{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start;margin-bottom:18px}
+.blockcol-tbl{flex:1 1 460px;min-width:0}
+.blockcol-pie{flex:0 0 380px;height:300px;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:12px 14px;position:relative}
 .tablewrap{border:1px solid var(--border);border-radius:10px;overflow:auto;max-width:100%}
 table{border-collapse:collapse;font-size:12.5px}
 thead th{position:sticky;top:0;background:var(--pink);color:#fff;font-weight:500;text-align:left;padding:8px 11px;white-space:normal;border:1px solid rgba(255,255,255,0.20);max-width:230px;overflow-wrap:break-word;vertical-align:bottom}
@@ -237,6 +240,11 @@ function blockPie(canvasId,block,topN){
   const vi=block.columns.indexOf("ФОТ за 6 месяцев");
   pieChart(canvasId,rows.map(r=>String(r[li])),rows.map(r=>toNum(r[vi])),topN);
 }
+function blockTotal(block){
+  const ci=block.columns.length-1;
+  const r=block.rows.find(rr=>/^(ИТОГО|Общий итог)/i.test(String(rr[0])));
+  return r?toNum(r[ci]):block.rows.reduce((a,rr)=>a+toNum(rr[ci]),0);
+}
 /* контент вкладки */
 function renderContent(id){
   clearCharts();
@@ -249,11 +257,12 @@ function renderContent(id){
     const pieSheet=(id==="svod_fil"||id==="svod_otr");
     let h=""; s.blocks.forEach((b,bi)=>{
       h+=`<div class="blocktitle">${esc(b.title)}</div>`;
-      if(id==="top10_fot"||pieSheet) h+=`<div class="chartbox"><canvas id="ch_${id}_${bi}"></canvas></div>`;
-      h+=`<div id="tb_${id}_${bi}"></div>`;
+      if(pieSheet) h+=`<div class="blockrow"><div class="blockcol-tbl" id="tb_${id}_${bi}"></div><div class="blockcol-pie"><canvas id="ch_${id}_${bi}"></canvas></div></div>`;
+      else if(id==="top10_fot") h+=`<div class="chartbox"><canvas id="ch_${id}_${bi}"></canvas></div><div id="tb_${id}_${bi}"></div>`;
+      else h+=`<div id="tb_${id}_${bi}"></div>`;
     });
-    if(id==="top10_fot" && s.pie){
-      h+=`<div class="blocktitle">Группа компаний и другие компании</div>
+    if(id==="top10_fot"){
+      h+=`<div class="blocktitle">Группа компаний и Топ-10</div>
           <div class="chartbox"><canvas id="ch_bigpie"></canvas></div>
           <div class="piesums" id="pieSums"></div>`;
     }
@@ -263,11 +272,11 @@ function renderContent(id){
       if(id==="top10_fot") barBlock(`ch_${id}_${bi}`,b);
       else if(pieSheet) blockPie(`ch_${id}_${bi}`,b, b.title.includes("виду деятельности")?8:null);
     });
-    if(id==="top10_fot" && s.pie){
-      pieChart("ch_bigpie",s.pie.labels,s.pie.values,null);
-      const tot=s.pie.values.reduce((a,b)=>a+b,0)||1;
-      document.getElementById("pieSums").innerHTML=s.pie.labels.map((l,i)=>
-        `<b>${esc(l)}:</b> ${fmtNum(s.pie.values[i])} (${(s.pie.values[i]/tot*100).toFixed(1)}%)`).join(" &nbsp;·&nbsp; ");
+    if(id==="top10_fot"){
+      const gt=blockTotal(s.blocks[1]), t10=blockTotal(s.blocks[0]), tot=gt+t10||1;
+      pieChart("ch_bigpie",["Группа компаний","Топ-10 компаний"],[gt,t10],null);
+      document.getElementById("pieSums").innerHTML=
+        `<b>Группа компаний:</b> ${fmtNum(gt)} (${(gt/tot*100).toFixed(1)}%) &nbsp;·&nbsp; <b>Топ-10 компаний:</b> ${fmtNum(t10)} (${(t10/tot*100).toFixed(1)}%)`;
     }
     return;
   }
