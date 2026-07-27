@@ -275,14 +275,15 @@ function renderContent(id){
     let h=""; s.blocks.forEach((b,bi)=>{
       h+=`<div class="blocktitle">${esc(b.title)}</div>`;
       if(pieSheet) h+=`<div class="blockrow"><div class="blockcol-tbl" id="tb_${id}_${bi}"></div><div class="blockcol-pie"><canvas id="ch_${id}_${bi}"></canvas></div></div>`;
-      else if(id==="top10_fot") h+=`<div class="chartbox"><canvas id="ch_${id}_${bi}"></canvas></div><div id="tb_${id}_${bi}"></div>`;
-      else h+=`<div id="tb_${id}_${bi}"></div>`;
-    });
-    if(id==="top10_fot"){
-      h+=`<div class="blocktitle">Группа компаний и Топ-10</div>
+      else if(id==="top10_fot"){
+        h+=`<div class="chartbox"><canvas id="ch_${id}_${bi}"></canvas></div>`;
+        if(bi===1) h+=`<div class="blocktitle">Группа компаний и все остальные</div>
           <div class="chartbox" style="max-width:760px"><canvas id="ch_bigpie"></canvas></div>
           <div class="piesums" id="pieSums"></div>`;
-    }
+        h+=`<div id="tb_${id}_${bi}"></div>`;
+      }
+      else h+=`<div id="tb_${id}_${bi}"></div>`;
+    });
     c.innerHTML=h;
     s.blocks.forEach((b,bi)=>{
       if(pieSheet) recomputeShare(b);
@@ -291,10 +292,17 @@ function renderContent(id){
       else if(pieSheet) blockPie(`ch_${id}_${bi}`,b, b.title.includes("виду деятельности")?8:null);
     });
     if(id==="top10_fot"){
-      const gt=blockTotal(s.blocks[1]), t10=blockTotal(s.blocks[0]), tot=gt+t10||1;
-      pieChart("ch_bigpie",["Группа компаний","Топ-10 компаний"],[gt,t10],null);
+      const gt=blockTotal(s.blocks[1]);
+      const det=DATA.sheets.detalny; let detTotal=0;
+      if(det&&det.rows){
+        const mi=det.columns.map((c,i)=>/^ФОТ\s/.test(c)?i:-1).filter(i=>i>=0);
+        det.rows.forEach(r=>{ if(/^(ИТОГО|Общий итог)/i.test(String(r[0])))return; mi.forEach(i=>detTotal+=toNum(r[i])); });
+      }
+      const rest = detTotal>gt ? detTotal-gt : ((s.pie&&s.pie.values)?s.pie.values[1]:blockTotal(s.blocks[0]));
+      const tot=gt+rest||1;
+      pieChart("ch_bigpie",["Группа компаний","Все остальные компании"],[gt,rest],null);
       document.getElementById("pieSums").innerHTML=
-        `<b>Группа компаний:</b> ${fmtNum(gt)} (${(gt/tot*100).toFixed(1)}%) &nbsp;·&nbsp; <b>Топ-10 компаний:</b> ${fmtNum(t10)} (${(t10/tot*100).toFixed(1)}%)`;
+        `<b>Группа компаний:</b> ${fmtNum(gt)} (${(gt/tot*100).toFixed(1)}%) &nbsp;·&nbsp; <b>Все остальные компании:</b> ${fmtNum(rest)} (${(rest/tot*100).toFixed(1)}%)`;
     }
     return;
   }
