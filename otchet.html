@@ -55,13 +55,17 @@ h2.title{font-family:'Unbounded',sans-serif;font-weight:500;font-size:22px;color
 .blockcol-tbl{flex:0 1 auto;min-width:0;max-width:calc(100% - 540px)}
 .blockcol-pie{flex:0 0 510px;min-height:360px;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px;position:relative}
 .tablewrap{border:1px solid var(--border);border-radius:10px;overflow:auto;max-width:100%}
-table{border-collapse:collapse;font-size:12.5px}
-thead th{position:sticky;top:0;background:var(--pink);color:#fff;font-weight:500;text-align:left;padding:8px 11px;white-space:normal;border:1px solid rgba(255,255,255,0.20);max-width:230px;overflow-wrap:break-word;vertical-align:bottom}
+table{border-collapse:collapse;font-size:12px}
+thead th{position:sticky;top:0;background:var(--pink);color:#fff;font-weight:500;text-align:left;padding:6px 9px;white-space:normal;border:1px solid rgba(255,255,255,0.20);max-width:230px;overflow-wrap:break-word;vertical-align:bottom}
 thead th.num{text-align:right;white-space:nowrap;max-width:none}
-tbody td{padding:7px 11px;border:1px solid rgba(255,255,255,0.13);white-space:normal;vertical-align:top;max-width:230px;overflow-wrap:break-word}
+thead th.grp{text-align:center;white-space:nowrap}
+tbody td{padding:5px 9px;border:1px solid rgba(255,255,255,0.13);white-space:normal;vertical-align:top;max-width:230px;overflow-wrap:break-word}
 tbody td.num{text-align:right;white-space:nowrap;max-width:none;font-variant-numeric:tabular-nums}
 tbody tr:hover{background:rgba(255,255,255,0.03)}
 tbody tr.total td{font-weight:600;background:rgba(255,255,255,0.04)}
+.stacktbl table{font-size:11px}
+.stacktbl thead th{padding:5px 7px;white-space:nowrap}
+.stacktbl tbody td{padding:4px 7px}
 .controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
 .search{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:9px 12px;min-width:280px}
 .search i{color:var(--muted);font-size:15px}
@@ -173,9 +177,20 @@ function renderTabs(activeId){
   }).join("");
   document.querySelectorAll("[data-tab]").forEach(t=>t.onclick=()=>{ location.hash=t.getAttribute("data-tab"); });
 }
-function tableHTML(columns,rows){
+function tableHTML(columns,rows,groups){
   const numcol=columns.map((c,i)=>rows.some(r=>isNum(r[i])));
-  const head=columns.map((c,i)=>`<th class="${numcol[i]?"num":""}">${esc(c)}</th>`).join("");
+  let head;
+  if(groups&&groups.length){
+    let ci=0,r1="",r2="";
+    groups.forEach(g=>{
+      if(g.span===1){ r1+=`<th rowspan="2" class="${numcol[ci]?"num":""}">${esc(columns[ci])}</th>`; ci+=1; }
+      else{ r1+=`<th colspan="${g.span}" class="grp">${esc(g.label||"")}</th>`;
+            for(let k=0;k<g.span;k++){ r2+=`<th class="${numcol[ci]?"num":""}">${esc(columns[ci])}</th>`; ci+=1; } }
+    });
+    head=`<tr>${r1}</tr><tr>${r2}</tr>`;
+  } else {
+    head=`<tr>${columns.map((c,i)=>`<th class="${numcol[i]?"num":""}">${esc(c)}</th>`).join("")}</tr>`;
+  }
   const body=rows.map(r=>{
     const isTotal=typeof r[0]==="string"&&/^(ИТОГО|Общий итог)/i.test(r[0]);
     const tds=r.map((v,i)=>{
@@ -184,7 +199,7 @@ function tableHTML(columns,rows){
     }).join("");
     return `<tr class="${isTotal?"total":""}">${tds}</tr>`;
   }).join("");
-  return `<div class="tablewrap"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+  return `<div class="tablewrap"><table><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
 }
 function pagerHTML(page,pages){
   let h=`<button class="pg" data-pg="prev" ${page===0?"disabled":""}>‹</button>`;
@@ -192,7 +207,7 @@ function pagerHTML(page,pages){
   let last=-1; win.forEach(p=>{ if(p-last>1) h+=`<span>…</span>`; h+=`<button class="pg ${p===page?"active":""}" data-pg="${p}">${p+1}</button>`; last=p; });
   h+=`<button class="pg" data-pg="next" ${page>=pages-1?"disabled":""}>›</button>`; return h;
 }
-function tableModule(el,key,columns,rows){
+function tableModule(el,key,columns,rows,groups){
   const st=state[key]||(state[key]={q:"",page:0}); const big=rows.length>30;
   function draw(){
     const q=st.q.trim().toLowerCase();
@@ -200,7 +215,7 @@ function tableModule(el,key,columns,rows){
     const pages=Math.max(1,Math.ceil(all.length/PAGE)); if(st.page>=pages)st.page=0;
     const slice=big?all.slice(st.page*PAGE,st.page*PAGE+PAGE):all;
     let h=""; if(big) h+=`<div class="controls"><div class="search"><i class="ti ti-search"></i><input id="q_${key}" placeholder="Поиск…" value="${esc(st.q)}"></div><span class="count">${all.length} из ${rows.length}</span></div>`;
-    h+=tableHTML(columns,slice); if(big) h+=`<div class="pager">${pagerHTML(st.page,pages)}</div>`;
+    h+=tableHTML(columns,slice,groups); if(big) h+=`<div class="pager">${pagerHTML(st.page,pages)}</div>`;
     el.innerHTML=h;
     if(big){
       const qi=el.querySelector(`#q_${key}`);
@@ -277,7 +292,7 @@ function renderContent(id){
     const pieSheet=(id==="svod_fil"||id==="svod_otr");
     let h=""; s.blocks.forEach((b,bi)=>{
       h+=`<div class="blocktitle">${esc(b.title)}</div>`;
-      if(pieSheet && b.stack) h+=`<div id="tb_${id}_${bi}"></div>`;
+      if(pieSheet && b.stack) h+=`<div class="stacktbl" id="tb_${id}_${bi}"></div>`;
       else if(pieSheet) h+=`<div class="blockrow"><div class="blockcol-tbl" id="tb_${id}_${bi}"></div><div class="blockcol-pie"><canvas id="ch_${id}_${bi}"></canvas></div></div>`;
       else if(id==="top10_fot"){
         h+=`<div class="chartbox"><canvas id="ch_${id}_${bi}"></canvas></div>`;
@@ -291,7 +306,7 @@ function renderContent(id){
     c.innerHTML=h;
     s.blocks.forEach((b,bi)=>{
       if(pieSheet && !b.stack) recomputeShare(b);
-      tableModule(document.getElementById(`tb_${id}_${bi}`),`${id}_${bi}`,b.columns,b.rows);
+      tableModule(document.getElementById(`tb_${id}_${bi}`),`${id}_${bi}`,b.columns,b.rows,b.colGroups);
       if(id==="top10_fot") barBlock(`ch_${id}_${bi}`,b);
       else if(pieSheet && !b.stack) blockPie(`ch_${id}_${bi}`,b, b.title.includes("виду деятельности")?8:null);
     });
