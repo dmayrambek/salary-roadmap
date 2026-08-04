@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Зарплатный проект O!Bank — Welcome Pack</title>
+<style>
+  :root{
+    --pink:#E8005A;--pink-dark:#c00049;--ink:#17171C;--muted:#6b6b76;
+    --bg:#F5F5F8;--card:#FFFFFF;--line:#ececf1;--radius:20px;
+    --shadow:0 8px 30px rgba(23,23,28,.06);--shadow-hover:0 14px 40px rgba(232,0,90,.14);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:"Segoe UI",-apple-system,BlinkMacSystemFont,Roboto,Arial,sans-serif;color:var(--ink);background:var(--bg);line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1120px;margin:0 auto;padding:0 24px}
+  a{color:inherit;text-decoration:none}
+
+  header{position:sticky;top:0;z-index:50;background:var(--bg);border-bottom:1px solid var(--line)}
+  .hbar{display:flex;align-items:center;justify-content:space-between;height:68px}
+  .logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:20px;background:none;border:0;cursor:pointer;font-family:inherit}
+  .logo .badge{background:var(--pink);color:#fff;border-radius:9px;padding:2px 10px;font-weight:700;position:relative}
+  .logo .badge::after{content:"";position:absolute;left:14px;bottom:-6px;border-width:7px 6px 0 6px;border-style:solid;border-color:var(--pink) transparent transparent transparent}
+  nav.tabs{display:flex;gap:6px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:5px}
+  nav.tabs button{border:0;background:transparent;font:inherit;font-weight:600;color:var(--muted);padding:9px 18px;border-radius:999px;cursor:pointer;transition:.2s;white-space:nowrap;font-size:14px}
+  nav.tabs button.active{background:var(--pink);color:#fff}
+  .hcta{background:var(--ink);color:#fff;padding:11px 20px;border-radius:999px;font-weight:600;font-size:14px;cursor:pointer;border:0}
+  .hcta:hover{background:#000}
+
+  section.block{padding:52px 0}
+  .eyebrow{color:var(--pink);font-weight:700;letter-spacing:.12em;text-transform:uppercase;font-size:12px;margin-bottom:14px}
+  h1{font-size:clamp(32px,5vw,56px);line-height:1.05;font-weight:700;letter-spacing:-.02em}
+  h2{font-size:clamp(24px,3.4vw,38px);line-height:1.1;font-weight:700;letter-spacing:-.01em;margin-bottom:10px}
+  h3{font-size:20px;font-weight:700;margin-bottom:6px}
+  p.lead{font-size:18px;color:var(--muted);max-width:640px}
+  .pink{color:var(--pink)}
+  .muted{color:var(--muted);font-size:15px}
+
+  .hero{padding:60px 0 34px}
+  .hero .inner{display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center}
+  .art{background:linear-gradient(135deg,var(--pink),#ff5c9d);border-radius:28px;min-height:300px;position:relative;overflow:hidden;box-shadow:var(--shadow)}
+  .art .big{position:absolute;color:#fff;font-weight:700;top:26px;left:30px;font-size:60px;line-height:1}
+  .art .big small{display:block;font-size:16px;font-weight:600;opacity:.9;margin-top:8px}
+  .art .card-mock{position:absolute;right:-20px;bottom:26px;width:250px;height:158px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.35);border-radius:18px;transform:rotate(-6deg);box-shadow:0 20px 40px rgba(0,0,0,.18)}
+  .art .card-mock .chip{position:absolute;top:26px;left:22px;width:38px;height:28px;background:rgba(255,255,255,.7);border-radius:6px}
+  .art .card-mock .cbadge{position:absolute;top:20px;right:20px;background:#fff;color:var(--pink);font-weight:700;border-radius:7px;padding:2px 9px;font-size:14px}
+  .art .card-mock .num{position:absolute;bottom:44px;left:22px;color:#fff;letter-spacing:3px;font-size:15px;font-weight:600}
+  .art .card-mock .lbl{position:absolute;bottom:18px;left:22px;color:rgba(255,255,255,.85);font-size:11px;letter-spacing:.1em}
+  .btn-row{display:flex;gap:12px;margin-top:26px;flex-wrap:wrap}
+  .btn{padding:14px 26px;border-radius:999px;font-weight:600;cursor:pointer;border:0;font-size:15px;transition:.2s;font-family:inherit}
+  .btn-primary{background:var(--pink);color:#fff}
+  .btn-primary:hover{background:var(--pink-dark)}
+  .btn-ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+  .btn-ghost:hover{border-color:var(--pink);color:var(--pink)}
+
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:8px}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:26px;box-shadow:var(--shadow)}
+  .stat .n{font-size:40px;font-weight:700;color:var(--pink);line-height:1}
+  .stat .t{color:var(--muted);margin-top:8px;font-size:14px}
+
+  .grid{display:grid;gap:18px}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  .g2{grid-template-columns:repeat(2,1fr)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:28px;box-shadow:var(--shadow);transition:.2s}
+  .card.hoverable{cursor:pointer}
+  .card.hoverable:hover{transform:translateY(-3px);box-shadow:var(--shadow-hover)}
+  .ic{width:46px;height:46px;border-radius:13px;background:rgba(232,0,90,.1);color:var(--pink);display:flex;align-items:center;justify-content:center;margin-bottom:16px}
+  .ic svg{width:24px;height:24px}
+  .card ul{list-style:none;margin-top:12px}
+  .card ul li{position:relative;padding-left:24px;margin:9px 0;color:var(--muted);font-size:15px}
+  .card ul li::before{content:"";position:absolute;left:0;top:8px;width:8px;height:8px;border-radius:50%;background:var(--pink)}
+  .go{color:var(--pink);font-weight:600;margin-top:16px;display:inline-flex;align-items:center;gap:6px;font-size:14px}
+
+  .aud-head{text-align:center;margin-bottom:26px}
+  .aud-head h2{margin-bottom:6px}
+  .aud-card{position:relative;background:#fff;border:2px solid rgba(232,0,90,.20);border-radius:var(--radius);padding:30px;box-shadow:0 10px 34px rgba(232,0,90,.10);transition:.2s;cursor:pointer}
+  .aud-card:hover{transform:translateY(-4px);border-color:var(--pink);box-shadow:0 18px 46px rgba(232,0,90,.24)}
+  .aud-card .ic{width:54px;height:54px;border-radius:15px;background:var(--pink);color:#fff}
+  .aud-card .ic svg{width:26px;height:26px}
+  .aud-card .pill{display:inline-flex;align-items:center;gap:6px;margin-top:20px;background:var(--pink);color:#fff;font-weight:600;font-size:14px;padding:10px 20px;border-radius:999px;transition:.2s}
+  .aud-card:hover .pill{background:var(--pink-dark)}
+
+  .tbl{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
+  table{border-collapse:collapse;width:100%;font-size:15px}
+  th,td{text-align:left;padding:15px 20px;border-bottom:1px solid var(--line);vertical-align:top}
+  thead th{background:#fafafb;font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+  tbody tr:last-child td{border-bottom:0}
+  td.free{color:#0a9d63;font-weight:600}
+  .tbl-note{font-size:12px;color:var(--muted);padding:14px 20px;background:#fafafb}
+  .tbl-scroll{overflow-x:auto}
+
+  .steps{counter-reset:s;display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+  .step{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:28px;position:relative;box-shadow:var(--shadow)}
+  .step .num{width:44px;height:44px;border-radius:50%;background:var(--pink);color:#fff;font-weight:700;font-size:20px;display:flex;align-items:center;justify-content:center;margin-bottom:16px}
+
+  .hl{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;text-align:center}
+  .hl .box{background:linear-gradient(135deg,var(--pink),#ff4f96);color:#fff;border-radius:var(--radius);padding:30px 20px}
+  .hl .box .n{font-size:44px;font-weight:700;line-height:1}
+  .hl .box .t{opacity:.92;margin-top:8px;font-size:14px}
+
+  /* connect toggle */
+  .toggle{display:inline-flex;background:#fff;border:1px solid var(--line);border-radius:999px;padding:5px;margin-bottom:26px;flex-wrap:wrap;gap:4px}
+  .toggle button{border:0;background:transparent;font:inherit;font-weight:600;color:var(--muted);padding:11px 22px;border-radius:999px;cursor:pointer;transition:.2s;font-size:14px}
+  .toggle button.active{background:var(--pink);color:#fff}
+  .flow{display:none}
+  .flow.active{display:block;animation:fade .3s ease}
+  .flowlist{display:grid;gap:14px}
+  .frow{display:flex;gap:18px;align-items:flex-start;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 24px;box-shadow:var(--shadow)}
+  .frow .n{flex:0 0 36px;height:36px;border-radius:50%;background:rgba(232,0,90,.1);color:var(--pink);font-weight:700;display:flex;align-items:center;justify-content:center}
+  .frow .tx h3{font-size:17px;margin-bottom:3px}
+  .frow .tx p{color:var(--muted);font-size:14px}
+
+  .faq details{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:2px 22px;margin-bottom:12px;box-shadow:var(--shadow)}
+  .faq summary{cursor:pointer;font-weight:600;padding:18px 0;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:16px}
+  .faq summary::-webkit-details-marker{display:none}
+  .faq summary::after{content:"+";color:var(--pink);font-size:24px;font-weight:400;transition:.2s}
+  .faq details[open] summary::after{transform:rotate(45deg)}
+  .faq details p{color:var(--muted);padding:0 0 20px;font-size:15px}
+
+  .cta{background:var(--ink);color:#fff;border-radius:28px;padding:48px;display:grid;grid-template-columns:1.1fr .9fr;gap:34px;align-items:start}
+  .cta h2{color:#fff}
+  .cta p{color:rgba(255,255,255,.7);margin-top:8px}
+  .cta .form{display:grid;gap:12px}
+  .cta input{padding:15px 18px;border-radius:12px;border:0;font:inherit;font-size:15px;width:100%}
+  .cta .btn-primary{width:100%}
+  .cta small{color:rgba(255,255,255,.5);font-size:12px}
+
+
+  .connect-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start}
+  .choice-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:28px;box-shadow:var(--shadow)}
+  .choice-card h3{margin-bottom:18px}
+  .choice{display:flex;align-items:center;gap:14px;width:100%;text-align:left;background:#fff;border:2px solid var(--line);border-radius:14px;padding:18px 20px;margin-bottom:12px;cursor:pointer;font:inherit;font-weight:600;color:var(--ink);transition:.2s;line-height:1.35}
+  .choice:hover{border-color:rgba(232,0,90,.4)}
+  .choice.active{border-color:var(--pink);background:rgba(232,0,90,.06)}
+  .choice .radio{flex:0 0 24px;height:24px;border-radius:50%;border:2px solid #cfcfd6;display:flex;align-items:center;justify-content:center;transition:.2s}
+  .choice.active .radio{border-color:var(--pink);background:var(--pink)}
+  .choice .radio svg{width:13px;height:13px;color:#fff;opacity:0;transition:.2s}
+  .choice.active .radio svg{opacity:1}
+  .vid-cap{color:var(--muted);font-size:14px;margin:24px 0 12px}
+  .vid{width:100%;border-radius:16px;overflow:hidden;box-shadow:var(--shadow);background:#000;line-height:0}
+  .vid video{width:100%;display:block;border-radius:16px}
+  .promo-qr{margin-top:24px;background:linear-gradient(135deg,var(--pink),#ff5c9d);border-radius:18px;padding:24px;color:#fff;display:flex;gap:16px;align-items:center;box-shadow:0 12px 30px rgba(232,0,90,.22)}
+  .promo-qr .txt{flex:1;min-width:0}
+  .promo-qr h3{color:#fff;margin-bottom:8px;font-size:18px}
+  .promo-qr p{color:rgba(255,255,255,.92);font-size:14px;line-height:1.45}
+  .promo-qr .illus{flex:0 0 116px;width:116px;height:auto}
+  @media(max-width:520px){.promo-qr{flex-direction:column;text-align:center}}
+  @media(max-width:860px){.connect-grid{grid-template-columns:1fr}}
+
+
+  .qr{display:flex;justify-content:center;padding:22px;background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow)}
+  .qr img{width:200px;height:200px;image-rendering:pixelated}
+
+  #thankyou{position:fixed;inset:0;z-index:999;background:linear-gradient(135deg,var(--pink),var(--pink-dark));display:none;align-items:center;justify-content:center;text-align:center;overflow:hidden}
+  #thankyou.show{display:flex}
+  #thankyou #fw{position:absolute;inset:0;width:100%;height:100%;z-index:1}
+  #thankyou .ty-content{position:relative;z-index:2;color:#fff;padding:24px;max-width:660px;animation:fade .5s ease}
+  #thankyou .ty-logo{display:inline-flex;align-items:center;gap:10px;font-weight:700;font-size:26px;margin-bottom:22px}
+  #thankyou .ty-logo .badge{background:#fff;color:var(--pink);border-radius:9px;padding:2px 10px;position:relative}
+  #thankyou .ty-logo .badge::after{content:"";position:absolute;left:14px;bottom:-6px;border-width:7px 6px 0 6px;border-style:solid;border-color:#fff transparent transparent transparent}
+  #thankyou h1{font-size:clamp(34px,6vw,60px);line-height:1.05;margin-bottom:16px;color:#fff}
+  #thankyou p{font-size:19px;color:rgba(255,255,255,.92);margin-bottom:30px}
+  #thankyou .btn-white{background:#fff;color:var(--pink);padding:15px 34px;border-radius:999px;font-weight:700;font-size:16px;border:0;cursor:pointer;font-family:inherit}
+
+  .panel{display:none}
+  .panel.active{display:block;animation:fade .3s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .sec-head{max-width:680px;margin-bottom:28px}
+
+  footer{border-top:1px solid var(--line);margin-top:20px;padding:30px 0;color:var(--muted);font-size:12px;text-align:center;line-height:1.7}
+
+  @media(max-width:860px){
+    .hero .inner{grid-template-columns:1fr}
+    .art{min-height:220px}
+    .stats,.g3,.g2,.steps,.hl{grid-template-columns:1fr}
+    .cta{grid-template-columns:1fr;padding:32px}
+    nav.tabs{order:3;width:100%;justify-content:center}
+    .hbar{flex-wrap:wrap;height:auto;padding:12px 0;gap:10px}
+    .hcta{display:none}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap hbar">
+    <button class="logo" onclick="switchTab('home')"><span class="badge">O!Bank</span></button>
+    <nav class="tabs">
+      <button data-tab="ceo">Руководителям</button>
+      <button data-tab="acc">Бухгалтерии</button>
+      <button data-tab="emp">Сотрудникам</button>
+    </nav>
+    <button class="hcta" onclick="goApply()">Оставить заявку</button>
+  </div>
+</header>
+
+<!-- =================== ГЛАВНАЯ =================== -->
+<div class="panel active" id="home">
+  <section class="hero">
+    <div class="wrap inner">
+      <div>
+        <h1><span class="pink">Онлайн</span><br>Зарплатный проект O!Bank</h1>
+        <p class="lead" style="margin-top:18px">«O!Bank» — цифровая экосистема и один из лидеров финтеха Кыргызстана: банк, платежи, мобильный оператор и суперапп в едином контуре. Прозрачные и быстрые выплаты, меньше рутины для бухгалтерии и реальная выгода для сотрудников.</p>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="goApply()">Подключить проект</button>
+          <button class="btn btn-ghost" onclick="document.getElementById('connect').scrollIntoView({behavior:'smooth'})">Как подключиться</button>
+        </div>
+      </div>
+      <div class="art">
+        <div class="big">O!Bank<small>Зарплатная карта</small></div>
+        <div class="card-mock"><div class="chip"></div><div class="cbadge">O!Bank</div><div class="num">•••• •••• •••• 5290</div><div class="lbl">ЗАРПЛАТНАЯ КАРТА</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 audience cards (T-Bank style) -->
+  <section class="block" style="padding-top:8px">
+    <div class="wrap">
+      <div class="grid g3">
+        <div class="aud-card" onclick="switchTab('ceo')">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6"/></svg></div>
+          <h3>Руководителям</h3>
+          <p class="muted" style="margin-top:8px">Подключение и обслуживание зарплатного проекта — 0 сом. Обсудим индивидуальные условия для бизнеса и ваших сотрудников.</p>
+          <span class="pill">Подробнее →</span>
+        </div>
+        <div class="aud-card" onclick="switchTab('acc')">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h8M8 15h5"/></svg></div>
+          <h3>Бухгалтерии</h3>
+          <p class="muted" style="margin-top:8px">Оперативная загрузка зарплатных реестров и начисление зарплаты 24/7 через онлайн-банк.</p>
+          <span class="pill">Подробнее →</span>
+        </div>
+        <div class="aud-card" onclick="switchTab('emp')">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 016-6h4a6 6 0 016 6v1"/></svg></div>
+          <h3>Сотрудникам</h3>
+          <p class="muted" style="margin-top:8px">Снятие 0% в банкоматах O!Bank, карты с кэшбэком и льготный зарплатный кредит до 1 000 000 сом.</p>
+          <span class="pill">Подробнее →</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Как подключиться (Freedom, 2 варианта) -->
+  <section class="block" id="connect">
+    <div class="wrap">
+      <div class="sec-head" style="text-align:center;max-width:none;margin:0 0 28px"><h2>Как подключиться?</h2></div>
+      <div class="connect-grid">
+        <div class="choice-card">
+          <h3>Выберите подходящий вариант</h3>
+          <button class="choice active" data-flow="has" onclick="switchFlow('has')">
+            <span class="radio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5L20 7"/></svg></span>
+            Если у вас уже есть счёт в нашей компании
+          </button>
+          <button class="choice" data-flow="no" onclick="switchFlow('no')">
+            <span class="radio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5L20 7"/></svg></span>
+            Если нет счёта в нашей компании
+          </button>
+          <div class="promo-qr">
+            <div class="txt">
+              <h3>Персональный QR компании</h3>
+              <p>Предоставим QR-код, который можно разместить в офисе компании для выпуска карт сотрудникам.</p>
+            </div>
+            <svg class="illus" viewBox="0 0 140 140" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <ellipse cx="70" cy="123" rx="45" ry="7" fill="rgba(0,0,0,.13)"/>
+              <path d="M58 50 v-6 a12 12 0 0 1 24 0 v6" stroke="#ffffff" stroke-width="6" fill="none" stroke-linecap="round"/>
+              <rect x="26" y="50" width="88" height="62" rx="12" fill="#ffffff"/>
+              <rect x="26" y="50" width="88" height="15" rx="10" fill="#ffd0e2"/>
+              <rect x="63" y="45" width="14" height="9" rx="2" fill="#ffd0e2"/>
+              <g transform="translate(47,63)">
+                <rect width="46" height="46" rx="9" fill="#fff" stroke="#ffe3ef" stroke-width="2"/>
+                <g fill="#E8005A">
+                  <path d="M7 7h11v11H7z"/><rect x="9.5" y="9.5" width="6" height="6" fill="#fff"/><rect x="11" y="11" width="3" height="3"/>
+                  <path d="M28 7h11v11H28z"/><rect x="30.5" y="9.5" width="6" height="6" fill="#fff"/><rect x="32" y="11" width="3" height="3"/>
+                  <path d="M7 28h11v11H7z"/><rect x="9.5" y="30.5" width="6" height="6" fill="#fff"/><rect x="11" y="32" width="3" height="3"/>
+                  <rect x="28" y="28" width="3" height="3"/><rect x="33" y="28" width="3" height="3"/>
+                  <rect x="28" y="33" width="3" height="3"/><rect x="36" y="33" width="3" height="3"/>
+                  <rect x="31" y="36" width="3" height="3"/><rect x="22" y="11" width="3" height="3"/>
+                  <rect x="22" y="17" width="3" height="3"/><rect x="11" y="22" width="3" height="3"/>
+                  <rect x="17" y="22" width="3" height="3"/>
+                </g>
+              </g>
+            </svg>
+          </div>
+        </div>
+        <div>
+          <div class="flow active" id="flow-has">
+            <div class="flowlist">
+              <div class="frow"><div class="n">1</div><div class="tx"><h3>Авторизуйтесь в онлайн-банке</h3><p>Перейдите во вкладку «Выпуск карт сотрудникам».</p></div></div>
+              <div class="frow"><div class="n">2</div><div class="tx"><h3>Добавьте сотрудника</h3><p>Загрузите список из 1С или добавьте сотрудников вручную.</p></div></div>
+              <div class="frow"><div class="n">3</div><div class="tx"><h3>Разошлите сотрудникам приглашение</h3><p>Отправьте СМС-ссылку или QR-код для онлайн-выпуска карт (занимает не более 5 минут).</p></div></div>
+              <div class="frow"><div class="n">4</div><div class="tx"><h3>Начисляйте зарплату</h3><p>Готово! Всё настроено для удобных выплат.</p></div></div>
+            </div>
+          </div>
+          <div class="flow" id="flow-no">
+            <div class="flowlist">
+              <div class="frow"><div class="n">1</div><div class="tx"><h3>Откройте счёт в банке</h3><p>Счёт для ИП и ОсОО открывается онлайн без визита в банк.</p></div></div>
+              <div class="frow"><div class="n">2</div><div class="tx"><h3>Оставьте заявку ниже</h3><p>Мы быстро обработаем запрос и свяжемся с вами.</p></div></div>
+              <div class="frow"><div class="n">3</div><div class="tx"><h3>Получите QR-код</h3><p>Менеджер приедет к вам с готовым QR-кодом для выпуска карт.</p></div></div>
+              <div class="frow"><div class="n">4</div><div class="tx"><h3>Сотрудники выпускают карты</h3><p>Сканируют QR-код и получают карту за 5 минут.</p></div></div>
+              <div class="frow"><div class="n">5</div><div class="tx"><h3>Начисляйте зарплату</h3><p>Всё готово — процесс полностью настроен.</p></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Подать заявку (Freedom form) -->
+  <section class="block">
+    <div class="wrap">
+      <div class="cta">
+        <div>
+          <h2>Подать заявку</h2>
+          <p>Заполните данные, после этого с вами свяжется менеджер и ответит на вопросы.</p>
+        </div>
+        <form class="form" id="apply" onsubmit="return demoSubmit(event)">
+          <input type="text" placeholder="Наименование организации" required>
+          <input type="tel" placeholder="Номер телефона" required>
+          <button class="btn btn-primary" type="submit">Отправить заявку</button>
+          <small>Оставляя заявку, вы подтверждаете корректность введённых данных и даёте согласие на их обработку.</small>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- Вопрос-ответ -->
+  <section class="block">
+    <div class="wrap">
+      <div class="sec-head"><h2>Вопрос-ответ</h2></div>
+      <div class="faq">
+        <details open><summary>Какая комиссия за подключение и зачисление заработной платы?</summary><p>Нет комиссий за подключение к зарплатному проекту и за зачисление заработной платы. Снятие в банкоматах и кассах O!Bank — 0%.</p></details>
+        <details><summary>Нужно ли подписывать документы для подключения?</summary><p>Подключение осуществляется как с подписанием договора, так и без — на усмотрение организации.</p></details>
+        <details><summary>С каких банков можно перечислять заработную плату?</summary><p>Перечислять зарплату можно с любого банка.</p></details>
+        <details><summary>Нужно ли открывать счёт в O!Bankе для подключения?</summary><p>Подключиться к зарплатному проекту можно без открытия счёта.</p></details>
+        <details><summary>У сотрудника уже есть карта O!Bank — нужна ли новая?</summary><p>Нет, достаточно одной карты. Для зачисления зарплаты сотрудник выгружает реквизиты карты в приложении «O!Bank» и передаёт в бухгалтерию.</p></details>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- =================== РУКОВОДИТЕЛЯМ =================== -->
+<div class="panel" id="ceo">
+  <section class="hero">
+    <div class="wrap inner">
+      <div>
+        <div class="eyebrow">Руководителям</div>
+        <h1>Условия — <span class="pink">без скрытых платежей</span></h1>
+        <p class="lead" style="margin-top:18px">Подключение и обслуживание зарплатного проекта — 0 сом. Прозрачные тарифы, утверждённые протоколом банка.</p>
+        <div class="btn-row"><button class="btn btn-primary" onclick="goApply()">Оставить заявку</button></div>
+      </div>
+      <div class="art">
+        <div class="big">0 сом<small>За подключение и обслуживание</small></div>
+        <div class="card-mock"><div class="chip"></div><div class="cbadge">O!Bank</div><div class="num">•••• •••• •••• 5290</div><div class="lbl">ЗАРПЛАТНАЯ КАРТА</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" style="padding-top:0">
+    <div class="wrap">
+      <div class="grid g2">
+        <div class="card"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg></div>
+          <h3>Премиальный сервис</h3>
+          <ul>
+            <li>Персональный ассистент</li>
+            <li>Выпуск премиальной карты</li>
+          </ul></div>
+        <div class="card"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
+          <h3>Подключение дополнительных продуктов на <span class="pink" style="font-size:1.18em">льготных</span> условиях</h3>
+          <ul>
+            <li>Проводной интернет от Saima и корпоративная связь от О!</li>
+            <li>Установка QR и POS-терминалов</li>
+            <li>Кредиты для бизнеса</li>
+          </ul></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" style="padding-top:0">
+    <div class="wrap">
+      <div class="sec-head"><h2>Условия зарплатного проекта</h2></div>
+      <div class="tbl tbl-scroll">
+        <table><tbody>
+          <tr><td><b>Валюта карты</b></td><td>KGS, USD, EUR, KZT</td></tr>
+          <tr><td><b>Выпуск и перевыпуск карты</b></td><td class="free">Бесплатно</td></tr>
+          <tr><td><b>Обслуживание 1-й и последующие годы</b></td><td class="free">Бесплатно</td></tr>
+          <tr><td><b>Зачисление зарплаты на счёт</b></td><td class="free">Бесплатно</td></tr>
+          <tr><td><b>Снятие в банкоматах и кассах O!Bank</b></td><td class="free">Бесплатно (0%)</td></tr>
+          <tr><td><b>Снятие в чужих банкоматах, КР</b></td><td>до 100 000 сом/мес бесплатно, свыше — 1% (min 250 сом)</td></tr>
+          <tr><td><b>Оплата через POS-терминалы</b></td><td class="free">Бесплатно</td></tr>
+          <tr><td><b>Снятие за рубежом</b></td><td>1% (min 250 сом)</td></tr>
+          <tr><td><b>Зарплатный кредит для сотрудников</b></td><td>19% годовых · до 1 000 000 сом · до 48 мес</td></tr>
+          <tr><td><b>Приложение «O!Bank»</b></td><td class="free">Бесплатно</td></tr>
+        </tbody></table>
+        <div class="tbl-note">Тарифы утверждены Протоколом №71/2025-10 от 18.12.2025, действуют с 13.01.2026.</div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- =================== БУХГАЛТЕРИИ =================== -->
+<div class="panel" id="acc">
+  <section class="hero">
+    <div class="wrap inner">
+      <div>
+        <div class="eyebrow">Бухгалтерии</div>
+        <h1>Меньше рутины, <span class="pink">выплаты в один клик</span></h1>
+        <p class="lead" style="margin-top:18px">Оперативная загрузка реестров, начисление 24/7 через онлайн-банк и мгновенное зачисление зарплаты.</p>
+        <div class="btn-row"><button class="btn btn-primary" onclick="goApply()">Оставить заявку</button></div>
+      </div>
+      <div class="art">
+        <div class="big">24/7<small>Начисление онлайн</small></div>
+        <div class="card-mock"><div class="chip"></div><div class="cbadge">O!Bank</div><div class="num">РЕЕСТР · 1 КЛИК</div><div class="lbl">ЗАЧИСЛЕНИЕ ЗАРПЛАТЫ</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" style="padding-top:0">
+    <div class="wrap">
+      <div class="sec-head"><h2>Автоматизируем процессы</h2><p class="lead">Чтобы сэкономить время бухгалтерии и убрать ручные операции.</p></div>
+      <div class="grid g3">
+        <div class="card"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v4H4zM4 10h16v10H4z"/><path d="M8 14h8M8 17h5"/></svg></div>
+          <h3>Один реестр</h3><p class="muted" style="margin-top:8px">Оперативная загрузка зарплатных реестров и повторные выплаты по загруженному списку.</p></div>
+        <div class="card"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div>
+          <h3>Начисление 24/7</h3><p class="muted" style="margin-top:8px">Зачисление зарплаты в любое время через онлайн-банк — без визита в отделение.</p></div>
+        <div class="card"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h7l-1 8 10-12h-7z"/></svg></div>
+          <h3>Мгновенное зачисление</h3><p class="muted" style="margin-top:8px">Деньги на картах сотрудников сразу после отправки реестра. Бесплатный выпуск карт.</p></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- =================== СОТРУДНИКАМ =================== -->
+<div class="panel" id="emp">
+  <section class="hero">
+    <div class="wrap inner">
+      <div>
+        <div class="eyebrow">Сотрудникам</div>
+        <h1>Твоя зарплата <span class="pink">работает на тебя</span></h1>
+        <p class="lead" style="margin-top:18px">Снятие 0% в банкоматах O!Bank, кэшбэк, приложение «O!Bank» и льготный зарплатный кредит.</p>
+        <div class="btn-row"><button class="btn btn-primary" onclick="document.getElementById('loan').scrollIntoView({behavior:'smooth'})">Зарплатный кредит</button></div>
+      </div>
+      <div class="art">
+        <div class="big">0%<small>Снятие в банкоматах O!Bank</small></div>
+        <div class="card-mock"><div class="chip"></div><div class="cbadge">O!Bank</div><div class="num">VISA · ЭЛКАРТ</div><div class="lbl">КЭШБЭК · МУЛЬТИВАЛЮТА</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" style="padding-top:0">
+    <div class="wrap">
+      <div class="sec-head"><h2>Что получаешь с зарплатной картой</h2></div>
+      <div class="grid g3">
+        <div class="card"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/></svg></div><h3>Снятие 0%</h3><p class="muted" style="margin-top:8px">Без комиссии в банкоматах и кассах O!Bank по всей стране.</p></div>
+        <div class="card"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12v6a2 2 0 01-2 2H6a2 2 0 01-2-2v-6"/><path d="M2 7h20v5H2zM12 22V7M12 7S9 2 6.5 4 9 7 12 7zm0 0s3-5 5.5-3S15 7 12 7z"/></svg></div><h3>Кэшбэк за покупки</h3><p class="muted" style="margin-top:8px">Карты с кэшбэком и спецпредложения экосистемы «O!Bank».</p></div>
+        <div class="card"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg></div><h3>Приложение «O!Bank»</h3><p class="muted" style="margin-top:8px">Платежи, переводы и управление картой — бесплатно, 24/7.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="loan" style="padding-top:0">
+    <div class="wrap">
+      <div class="sec-head"><h2>Зарплатный кредит — на льготных условиях</h2></div>
+      <div class="hl">
+        <div class="box"><div class="n">19%</div><div class="t">годовых по программе «Зарплатный»</div></div>
+        <div class="box"><div class="n">1 000 000</div><div class="t">макс. сумма, сом</div></div>
+        <div class="box"><div class="n">48 мес</div><div class="t">макс. срок кредита</div></div>
+      </div>
+      <div class="grid g2" style="margin-top:18px">
+        <div class="card"><h3>Как оформить</h3><ul>
+          <li>До 200 000 сом на срок до 24 мес — онлайн в приложении «O!Bank», без обеспечения и визита в банк</li>
+          <li>Свыше 200 000 сом — в отделении банка</li>
+          <li>Быстрое решение, минимум документов</li>
+          <li>Досрочное погашение без штрафов</li>
+        </ul></div>
+        <div class="card"><h3>Ипотека для сотрудников</h3><ul>
+          <li>Ставка 18% первые 3 года, далее 21,5% на 7 лет</li>
+          <li>Сумма до 12,5 млн сом, срок до 10 лет</li>
+          <li>Первоначальный взнос от 20%</li>
+          <li>Досрочное погашение без ограничений</li>
+        </ul></div>
+      </div>
+      <p class="muted" style="font-size:13px;margin-top:16px">По решению кредитного комитета может быть запрошено обеспечение. Точные условия определяются кредитным договором.</p>
+    </div>
+  </section>
+
+  <section class="block" style="padding-top:0">
+    <div class="wrap">
+      <div class="sec-head"><h2>Как получать зарплату на карту O!Bank</h2></div>
+      <div class="toggle">
+        <button class="active" data-empflow="has" onclick="switchEmpFlow('has')">Если у вас уже есть счёт в нашем банке</button>
+        <button data-empflow="no" onclick="switchEmpFlow('no')">Если нет счёта в нашем банке</button>
+      </div>
+      <div class="flow active" id="emp-flow-has">
+        <div class="flowlist">
+          <div class="frow"><div class="n">1</div><div class="tx"><h3>Зайдите в приложение Мой О!</h3><p>Перейдите во вкладку O!Bank и возьмите реквизиты счёта. При необходимости вы можете заказать физическую карту.</p></div></div>
+          <div class="frow"><div class="n">2</div><div class="tx"><h3>Передайте реквизиты бухгалтерии</h3><p>Для зачисления заработной платы.</p></div></div>
+          <div class="frow"><div class="n">3</div><div class="tx"><h3>Готово!</h3><p>В два клика вы уже будете получать заработную плату.</p></div></div>
+        </div>
+      </div>
+      <div class="flow" id="emp-flow-no">
+        <div class="flowlist">
+          <div class="frow"><div class="n">1</div><div class="tx"><h3>Скачайте приложение Мой О!</h3><p>И откройте счёт онлайн. При необходимости вы можете заказать физическую карту.</p></div></div>
+          <div class="frow"><div class="n">2</div><div class="tx"><h3>Передайте реквизиты бухгалтерии</h3><p>Для зачисления заработной платы.</p></div></div>
+          <div class="frow"><div class="n">3</div><div class="tx"><h3>Готово!</h3><p>В три клика вы уже будете получать заработную плату.</p></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div id="thankyou">
+  <canvas id="fw"></canvas>
+  <div class="ty-content">
+    <h1>Спасибо, что выбрали O!Bank</h1>
+    <p>Заявка отправлена — менеджер свяжется с вами в ближайшее время. На этой странице вы найдёте инструкции для входа в онлайн-банк, список подключённых сервисов и контакты техподдержки.</p>
+    <button class="btn-white" onclick="hideThanks()">Вернуться</button>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap">
+    ЗПП O!Bank · Welcome Pack · Черновик v5 · 03.08.2026 · Internal
+  </div>
+</footer>
+
+<script>
+  let currentTab = 'home';
+  const btns = document.querySelectorAll('nav.tabs button');
+  function switchTab(tab){
+    currentTab = tab;
+    document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active', p.id===tab));
+    btns.forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+  btns.forEach(b=>b.addEventListener('click',()=>switchTab(b.dataset.tab)));
+
+  function switchFlow(f){
+    document.querySelectorAll('.choice').forEach(b=>b.classList.toggle('active', b.dataset.flow===f));
+    document.getElementById('flow-has').classList.toggle('active', f==='has');
+    document.getElementById('flow-no').classList.toggle('active', f==='no');
+  }
+
+  function switchEmpFlow(f){
+    document.querySelectorAll('[data-empflow]').forEach(b=>b.classList.toggle('active', b.dataset.empflow===f));
+    document.getElementById('emp-flow-has').classList.toggle('active', f==='has');
+    document.getElementById('emp-flow-no').classList.toggle('active', f==='no');
+  }
+
+  function goApply(){
+    if(currentTab!=='home'){ switchTab('home'); }
+    setTimeout(()=>document.getElementById('apply').scrollIntoView({behavior:'smooth'}), currentTab!=='home'?350:0);
+  }
+
+  function demoSubmit(e){
+    e.preventDefault();
+    showThanks();
+    return false;
+  }
+
+  function showThanks(){
+    document.getElementById('thankyou').classList.add('show');
+    startFireworks();
+  }
+  function hideThanks(){
+    document.getElementById('thankyou').classList.remove('show');
+    stopFireworks();
+  }
+
+  let fwRAF=null,fwCtx=null,fwCanvas=null,fwParticles=[],fwTimer=0;
+  const FW_COLORS=['#ffffff','#ffd1e6','#ff8ac0','#ffe08a','#c9f5e5'];
+  function fwResize(){if(!fwCanvas)return;fwCanvas.width=fwCanvas.clientWidth;fwCanvas.height=fwCanvas.clientHeight;}
+  function fwLaunch(){
+    const cx=Math.random()*fwCanvas.width;
+    const cy=Math.random()*fwCanvas.height*0.45+fwCanvas.height*0.08;
+    const n=54+Math.floor(Math.random()*34);
+    for(let i=0;i<n;i++){
+      const a=Math.PI*2*i/n, sp=Math.random()*3.2+1.4;
+      fwParticles.push({x:cx,y:cy,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:1,c:FW_COLORS[Math.floor(Math.random()*FW_COLORS.length)]});
+    }
+  }
+  function fwTick(){
+    fwCtx.fillStyle='rgba(192,0,73,0.22)';
+    fwCtx.fillRect(0,0,fwCanvas.width,fwCanvas.height);
+    for(const p of fwParticles){
+      p.vx*=0.986; p.vy=p.vy*0.986+0.035; p.x+=p.vx*2; p.y+=p.vy*2; p.life-=0.011;
+      if(p.life>0){fwCtx.globalAlpha=Math.max(p.life,0);fwCtx.beginPath();fwCtx.arc(p.x,p.y,2.3,0,7);fwCtx.fillStyle=p.c;fwCtx.fill();}
+    }
+    fwCtx.globalAlpha=1;
+    fwParticles=fwParticles.filter(p=>p.life>0);
+    if(++fwTimer%26===0) fwLaunch();
+    fwRAF=requestAnimationFrame(fwTick);
+  }
+  function startFireworks(){
+    fwCanvas=document.getElementById('fw'); fwCtx=fwCanvas.getContext('2d');
+    fwResize(); window.addEventListener('resize',fwResize);
+    fwParticles=[]; fwTimer=0; fwLaunch(); fwLaunch();
+    cancelAnimationFrame(fwRAF); fwRAF=requestAnimationFrame(fwTick);
+  }
+  function stopFireworks(){cancelAnimationFrame(fwRAF); if(fwCtx)fwCtx.clearRect(0,0,fwCanvas.width,fwCanvas.height);}
+</script>
+</body>
+</html>
