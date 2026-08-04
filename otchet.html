@@ -277,7 +277,8 @@ function renderContent(id){
     const pieSheet=(id==="svod_fil"||id==="svod_otr");
     let h=""; s.blocks.forEach((b,bi)=>{
       h+=`<div class="blocktitle">${esc(b.title)}</div>`;
-      if(pieSheet) h+=`<div class="blockrow"><div class="blockcol-tbl" id="tb_${id}_${bi}"></div><div class="blockcol-pie"><canvas id="ch_${id}_${bi}"></canvas></div></div>`;
+      if(pieSheet && b.stack) h+=`<div id="tb_${id}_${bi}"></div>`;
+      else if(pieSheet) h+=`<div class="blockrow"><div class="blockcol-tbl" id="tb_${id}_${bi}"></div><div class="blockcol-pie"><canvas id="ch_${id}_${bi}"></canvas></div></div>`;
       else if(id==="top10_fot"){
         h+=`<div class="chartbox"><canvas id="ch_${id}_${bi}"></canvas></div>`;
         if(bi===1) h+=`<div class="blocktitle">Группа компаний и все остальные</div>
@@ -289,10 +290,10 @@ function renderContent(id){
     });
     c.innerHTML=h;
     s.blocks.forEach((b,bi)=>{
-      if(pieSheet) recomputeShare(b);
+      if(pieSheet && !b.stack) recomputeShare(b);
       tableModule(document.getElementById(`tb_${id}_${bi}`),`${id}_${bi}`,b.columns,b.rows);
       if(id==="top10_fot") barBlock(`ch_${id}_${bi}`,b);
-      else if(pieSheet) blockPie(`ch_${id}_${bi}`,b, b.title.includes("виду деятельности")?8:null);
+      else if(pieSheet && !b.stack) blockPie(`ch_${id}_${bi}`,b, b.title.includes("виду деятельности")?8:null);
     });
     if(id==="top10_fot"){
       const gt=blockTotal(s.blocks[1]);
