@@ -210,7 +210,7 @@ function home() {
     `<line x1="740" y1="300" x2="1180" y2="200"/><circle cx="960" cy="250" r="2.5"/>` +
     `<line x1="740" y1="300" x2="740" y2="545"/><circle cx="740" cy="422" r="2.5"/>`;
 
-  setLeft(`<span class="credit">created by Diana Mayrambekova</span>`);
+  setLeft(`<span class="credit"></span>`);
   document.getElementById("stage").innerHTML =
     `<div class="sphere-stage">` +
       `<div class="stage-title">Salary Project Roadmap</div>` +
