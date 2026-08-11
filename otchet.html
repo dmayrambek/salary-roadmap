@@ -10,6 +10,7 @@
 <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 :root{
   --pink:#E8005A; --pink-light:#ff4d92; --bg:#060608; --panel:#0b0b0e; --surface:#15151a;
@@ -44,7 +45,11 @@ input[type=email]:focus{outline:none;border-color:var(--pink)}
 .who{font-size:12px;color:var(--muted)}
 h2.title{font-family:'Unbounded',sans-serif;font-weight:500;font-size:22px;color:var(--pink);margin:14px 0 4px}
 .updated{font-size:12px;color:var(--muted);margin-bottom:16px}
-.tabs{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:18px}
+.tabsrow{display:flex;align-items:flex-start;gap:12px;justify-content:space-between;flex-wrap:wrap;margin-bottom:18px}
+.tabs{display:flex;flex-wrap:wrap;gap:7px;flex:1;min-width:0}
+.xlsbtn{flex:0 0 auto;white-space:nowrap}
+.xlsbtn:hover{border-color:var(--success);color:var(--success)}
+.xlsbtn:disabled{opacity:.55;cursor:default}
 .tab{font-size:12.5px;padding:8px 13px;border-radius:9px;background:var(--surface);border:1px solid var(--border);color:#c7c7cc;cursor:pointer;white-space:nowrap;transition:all .15s}
 .tab:hover{color:var(--text);border-color:var(--pink)}
 .tab.active{background:var(--pink);color:#fff;border-color:var(--pink)}
@@ -55,17 +60,13 @@ h2.title{font-family:'Unbounded',sans-serif;font-weight:500;font-size:22px;color
 .blockcol-tbl{flex:0 1 auto;min-width:0;max-width:calc(100% - 540px)}
 .blockcol-pie{flex:0 0 510px;min-height:360px;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px;position:relative}
 .tablewrap{border:1px solid var(--border);border-radius:10px;overflow:auto;max-width:100%}
-table{border-collapse:collapse;font-size:12px}
-thead th{position:sticky;top:0;background:var(--pink);color:#fff;font-weight:500;text-align:left;padding:6px 9px;white-space:normal;border:1px solid rgba(255,255,255,0.20);max-width:230px;overflow-wrap:break-word;vertical-align:bottom}
+table{border-collapse:collapse;font-size:12.5px}
+thead th{position:sticky;top:0;background:var(--pink);color:#fff;font-weight:500;text-align:left;padding:8px 11px;white-space:normal;border:1px solid rgba(255,255,255,0.20);max-width:230px;overflow-wrap:break-word;vertical-align:bottom}
 thead th.num{text-align:right;white-space:nowrap;max-width:none}
-thead th.grp{text-align:center;white-space:nowrap}
-tbody td{padding:5px 9px;border:1px solid rgba(255,255,255,0.13);white-space:normal;vertical-align:top;max-width:230px;overflow-wrap:break-word}
+tbody td{padding:7px 11px;border:1px solid rgba(255,255,255,0.13);white-space:normal;vertical-align:top;max-width:230px;overflow-wrap:break-word}
 tbody td.num{text-align:right;white-space:nowrap;max-width:none;font-variant-numeric:tabular-nums}
 tbody tr:hover{background:rgba(255,255,255,0.03)}
 tbody tr.total td{font-weight:600;background:rgba(255,255,255,0.04)}
-.stacktbl table{font-size:11px}
-.stacktbl thead th{padding:5px 7px;white-space:nowrap}
-.stacktbl tbody td{padding:4px 7px}
 .controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
 .search{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:9px 12px;min-width:280px}
 .search i{color:var(--muted);font-size:15px}
@@ -166,7 +167,10 @@ function shell(user){
     </div>
     <h2 class="title">Текущий отчёт</h2>
     <div class="updated">Данные за ${esc(DATA.period||"")} · обновлено ${esc(DATA.updated||"")}</div>
-    <div class="tabs" id="tabs"></div>
+    <div class="tabsrow">
+      <div class="tabs" id="tabs"></div>
+      <button class="hbtn xlsbtn" id="exportXls"><i class="ti ti-file-spreadsheet"></i> Скачать в Excel</button>
+    </div>
     <div id="content"></div>
   </div>`;
 }
@@ -177,20 +181,9 @@ function renderTabs(activeId){
   }).join("");
   document.querySelectorAll("[data-tab]").forEach(t=>t.onclick=()=>{ location.hash=t.getAttribute("data-tab"); });
 }
-function tableHTML(columns,rows,groups){
+function tableHTML(columns,rows){
   const numcol=columns.map((c,i)=>rows.some(r=>isNum(r[i])));
-  let head;
-  if(groups&&groups.length){
-    let ci=0,r1="",r2="";
-    groups.forEach(g=>{
-      if(g.span===1){ r1+=`<th rowspan="2" class="${numcol[ci]?"num":""}">${esc(columns[ci])}</th>`; ci+=1; }
-      else{ r1+=`<th colspan="${g.span}" class="grp">${esc(g.label||"")}</th>`;
-            for(let k=0;k<g.span;k++){ r2+=`<th class="${numcol[ci]?"num":""}">${esc(columns[ci])}</th>`; ci+=1; } }
-    });
-    head=`<tr>${r1}</tr><tr>${r2}</tr>`;
-  } else {
-    head=`<tr>${columns.map((c,i)=>`<th class="${numcol[i]?"num":""}">${esc(c)}</th>`).join("")}</tr>`;
-  }
+  const head=columns.map((c,i)=>`<th class="${numcol[i]?"num":""}">${esc(c)}</th>`).join("");
   const body=rows.map(r=>{
     const isTotal=typeof r[0]==="string"&&/^(ИТОГО|Общий итог)/i.test(r[0]);
     const tds=r.map((v,i)=>{
@@ -199,7 +192,7 @@ function tableHTML(columns,rows,groups){
     }).join("");
     return `<tr class="${isTotal?"total":""}">${tds}</tr>`;
   }).join("");
-  return `<div class="tablewrap"><table><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
+  return `<div class="tablewrap"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
 }
 function pagerHTML(page,pages){
   let h=`<button class="pg" data-pg="prev" ${page===0?"disabled":""}>‹</button>`;
@@ -207,7 +200,7 @@ function pagerHTML(page,pages){
   let last=-1; win.forEach(p=>{ if(p-last>1) h+=`<span>…</span>`; h+=`<button class="pg ${p===page?"active":""}" data-pg="${p}">${p+1}</button>`; last=p; });
   h+=`<button class="pg" data-pg="next" ${page>=pages-1?"disabled":""}>›</button>`; return h;
 }
-function tableModule(el,key,columns,rows,groups){
+function tableModule(el,key,columns,rows){
   const st=state[key]||(state[key]={q:"",page:0}); const big=rows.length>30;
   function draw(){
     const q=st.q.trim().toLowerCase();
@@ -215,7 +208,7 @@ function tableModule(el,key,columns,rows,groups){
     const pages=Math.max(1,Math.ceil(all.length/PAGE)); if(st.page>=pages)st.page=0;
     const slice=big?all.slice(st.page*PAGE,st.page*PAGE+PAGE):all;
     let h=""; if(big) h+=`<div class="controls"><div class="search"><i class="ti ti-search"></i><input id="q_${key}" placeholder="Поиск…" value="${esc(st.q)}"></div><span class="count">${all.length} из ${rows.length}</span></div>`;
-    h+=tableHTML(columns,slice,groups); if(big) h+=`<div class="pager">${pagerHTML(st.page,pages)}</div>`;
+    h+=tableHTML(columns,slice); if(big) h+=`<div class="pager">${pagerHTML(st.page,pages)}</div>`;
     el.innerHTML=h;
     if(big){
       const qi=el.querySelector(`#q_${key}`);
@@ -259,8 +252,7 @@ function pieChart(canvasId,labels,values,topN){
 function blockPie(canvasId,block,topN){
   const rows=block.rows.filter(r=>!/^(ИТОГО|Общий итог)/i.test(String(r[0])));
   const li=block.columns.indexOf("Наименование филиала")>=0?block.columns.indexOf("Наименование филиала"):0;
-  let vi=block.columns.indexOf("ФОТ за 6 месяцев");
-  if(vi<0) vi=block.columns.indexOf("Количество организаций");
+  const vi=block.columns.indexOf("ФОТ за 6 месяцев");
   pieChart(canvasId,rows.map(r=>String(r[li])),rows.map(r=>toNum(r[vi])),topN);
 }
 function blockTotal(block){
@@ -269,9 +261,7 @@ function blockTotal(block){
   return r?toNum(r[ci]):block.rows.reduce((a,rr)=>a+toNum(rr[ci]),0);
 }
 function recomputeShare(block){
-  const di=block.columns.indexOf("Доля, %");
-  let vi=block.columns.indexOf("ФОТ за 6 месяцев");
-  if(vi<0) vi=block.columns.indexOf("Количество организаций");
+  const di=block.columns.indexOf("Доля, %"), vi=block.columns.indexOf("ФОТ за 6 месяцев");
   if(di<0||vi<0) return;
   const tr=block.rows.find(r=>/^(ИТОГО|Общий итог)/i.test(String(r[0])));
   const total=tr?toNum(tr[vi]):block.rows.reduce((a,r)=>a+toNum(r[vi]),0);
@@ -292,8 +282,7 @@ function renderContent(id){
     const pieSheet=(id==="svod_fil"||id==="svod_otr");
     let h=""; s.blocks.forEach((b,bi)=>{
       h+=`<div class="blocktitle">${esc(b.title)}</div>`;
-      if(pieSheet && b.stack) h+=`<div class="stacktbl" id="tb_${id}_${bi}"></div>`;
-      else if(pieSheet) h+=`<div class="blockrow"><div class="blockcol-tbl" id="tb_${id}_${bi}"></div><div class="blockcol-pie"><canvas id="ch_${id}_${bi}"></canvas></div></div>`;
+      if(pieSheet) h+=`<div class="blockrow"><div class="blockcol-tbl" id="tb_${id}_${bi}"></div><div class="blockcol-pie"><canvas id="ch_${id}_${bi}"></canvas></div></div>`;
       else if(id==="top10_fot"){
         h+=`<div class="chartbox"><canvas id="ch_${id}_${bi}"></canvas></div>`;
         if(bi===1) h+=`<div class="blocktitle">Группа компаний и все остальные</div>
@@ -305,10 +294,10 @@ function renderContent(id){
     });
     c.innerHTML=h;
     s.blocks.forEach((b,bi)=>{
-      if(pieSheet && !b.stack) recomputeShare(b);
-      tableModule(document.getElementById(`tb_${id}_${bi}`),`${id}_${bi}`,b.columns,b.rows,b.colGroups);
+      if(pieSheet) recomputeShare(b);
+      tableModule(document.getElementById(`tb_${id}_${bi}`),`${id}_${bi}`,b.columns,b.rows);
       if(id==="top10_fot") barBlock(`ch_${id}_${bi}`,b);
-      else if(pieSheet && !b.stack) blockPie(`ch_${id}_${bi}`,b, b.title.includes("виду деятельности")?8:null);
+      else if(pieSheet) blockPie(`ch_${id}_${bi}`,b, b.title.includes("виду деятельности")?8:null);
     });
     if(id==="top10_fot"){
       const gt=blockTotal(s.blocks[1]);
@@ -330,9 +319,56 @@ function renderContent(id){
   c.innerHTML=(s.caption?`<div class="cap">${esc(s.caption)}</div>`:"")+`<div id="tb_${id}"></div>`;
   tableModule(document.getElementById(`tb_${id}`),id,s.columns,s.rows);
 }
+/* ---------- экспорт вкладки в Excel ---------- */
+function sanitizeSheetName(name,used){
+  let n=String(name||"Лист").replace(/[\[\]:*?\/\\]/g,"·").trim().slice(0,31)||"Лист";
+  const base=n; let i=2;
+  while(used.has(n.toLowerCase())){ const suf=" ("+i+")"; n=base.slice(0,31-suf.length)+suf; i++; }
+  used.add(n.toLowerCase()); return n;
+}
+function autoCols(aoa){
+  const w=[]; aoa.forEach(row=>row.forEach((v,i)=>{ const len=v==null?0:String(v).length; if(!w[i]||len>w[i])w[i]=len; }));
+  return w.map(c=>({wch:Math.min(Math.max((c||8)+2,8),48)}));
+}
+function blockToSheet(block){
+  const aoa=[], merges=[];
+  if(block.colGroups&&block.colGroups.length){
+    const r1=[],r2=[]; let col=0,ci=0;
+    block.colGroups.forEach(g=>{
+      const span=g.span||1;
+      if(span===1){ r1[col]=block.columns[ci]; r2[col]=null; merges.push({s:{r:0,c:col},e:{r:1,c:col}}); ci++; col++; }
+      else{ r1[col]=g.label||""; merges.push({s:{r:0,c:col},e:{r:0,c:col+span-1}}); for(let k=0;k<span;k++)r2[col+k]=block.columns[ci+k]; ci+=span; col+=span; }
+    });
+    aoa.push(r1,r2);
+  } else aoa.push(block.columns);
+  block.rows.forEach(r=>aoa.push(r));
+  const ws=XLSX.utils.aoa_to_sheet(aoa);
+  if(merges.length) ws["!merges"]=merges;
+  ws["!cols"]=autoCols(aoa);
+  return ws;
+}
+function exportSheet(id){
+  const btn=document.getElementById("exportXls");
+  if(typeof XLSX==="undefined"){ if(btn) btn.innerHTML='<i class="ti ti-alert-triangle"></i> Excel не загрузился'; return; }
+  const s=DATA.sheets[id]; if(!s) return;
+  const wb=XLSX.utils.book_new(); const used=new Set();
+  if(s.type==="blocks"){
+    const pieSheet=(id==="svod_fil"||id==="svod_otr");
+    s.blocks.forEach(b=>{ if(pieSheet) recomputeShare(b); XLSX.utils.book_append_sheet(wb,blockToSheet(b),sanitizeSheetName(b.title,used)); });
+  } else if(s.type==="placeholder"){
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([[s.note||"Данные будут добавлены позже."]]),sanitizeSheetName(s.name,used));
+  } else {
+    const aoa=[s.columns,...s.rows]; const ws=XLSX.utils.aoa_to_sheet(aoa); ws["!cols"]=autoCols(aoa);
+    XLSX.utils.book_append_sheet(wb,ws,sanitizeSheetName(s.name,used));
+  }
+  const per=(DATA.period||"").replace(/[\/\\:*?\[\]]/g,"-");
+  const fname=(s.name||"Отчёт").replace(/[\/\\:*?"<>|]/g,"-")+(per?" — "+per:"")+".xlsx";
+  XLSX.writeFile(wb,fname);
+}
 function route(){
   const id=decodeURIComponent(location.hash.replace(/^#/,""))||DATA.order[0];
   renderTabs(id); renderContent(id);
+  const xb=document.getElementById("exportXls"); if(xb) xb.onclick=()=>exportSheet(id);
 }
 async function showReport(user){
   try{ await ensureData(); }
